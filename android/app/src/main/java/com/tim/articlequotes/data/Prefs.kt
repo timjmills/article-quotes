@@ -89,6 +89,30 @@ class Prefs(ctx: Context) {
         get() = sp.getLong("currentSince", 0L)
         set(v) = sp.edit().putLong("currentSince", v).apply()
 
+    // ---- history: every quote that has been shown, so you can move back and forth ----
+    val history: List<Quote>
+        get() {
+            val raw = sp.getString("history", "[]") ?: "[]"
+            val arr = runCatching { JSONArray(raw) }.getOrElse { JSONArray() }
+            return List(arr.length()) { Quote.fromJson(arr.getJSONObject(it)) }
+        }
+
+    var historyIndex: Int
+        get() = sp.getInt("historyIndex", -1)
+        set(v) = sp.edit().putInt("historyIndex", v).apply()
+
+    /** Append [q] after the current position (dropping any "forward" entries) and move to it. */
+    fun pushHistory(q: Quote) {
+        val list = history.toMutableList()
+        val idx = historyIndex
+        if (idx in list.indices && list[idx].id == q.id) return
+        if (idx >= 0 && idx < list.size - 1) { while (list.size > idx + 1) list.removeAt(list.size - 1) }
+        list.add(q)
+        while (list.size > 300) list.removeAt(0)
+        val arr = JSONArray(); list.forEach { arr.put(it.toJson()) }
+        sp.edit().putString("history", arr.toString()).putInt("historyIndex", list.size - 1).apply()
+    }
+
     // ---- seen quotes (rolling window so the pool never runs dry) ----
     val seenIds: Set<String>
         get() = sp.getStringSet("seen", emptySet())?.toSet() ?: emptySet()

@@ -43,9 +43,25 @@ object Rotator {
         prefs.currentQuote = q
         prefs.currentSince = System.currentTimeMillis()
         prefs.markSeen(q.id)
+        prefs.pushHistory(q)
         if (notify) Notifications.show(app, q)
         applyWallpaper(app, prefs, q)
         QuoteWidget.refresh(app)
+    }
+
+    /**
+     * Move to a quote already in the history (swiping back or forward). Updates the app
+     * and widget at once; the caller applies the wallpaper after a short pause so a fast
+     * swipe through several quotes doesn't re-render the lock screen each time.
+     */
+    fun showFromHistory(ctx: Context, index: Int): Quote? {
+        val app = ctx.applicationContext
+        val prefs = Prefs(app)
+        val q = prefs.history.getOrNull(index) ?: return null
+        prefs.historyIndex = index
+        prefs.currentQuote = q
+        QuoteWidget.refresh(app)
+        return q
     }
 
     fun applyWallpaper(ctx: Context, prefs: Prefs, q: Quote) {

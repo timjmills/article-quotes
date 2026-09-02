@@ -37,7 +37,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
@@ -223,19 +229,43 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
         quote = prefs.currentQuote
         fav = quote?.let { prefs.isFavorite(it.id) } ?: false
         hasData = repo.hasData()
+        histIndex = prefs.historyIndex; histSize = prefs.history.size
         onPauseOrDispose { }
     }
 
-    fun next() {
+    // Position in the history of shown quotes; swiping moves through it.
+    var histIndex by remember { mutableIntStateOf(prefs.historyIndex) }
+    var histSize by remember { mutableIntStateOf(prefs.history.size) }
+    var wallpaperJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
+    fun applyWallpaperSoon(q: Quote) {
+        wallpaperJob?.cancel()
+        wallpaperJob = scope.launch {
+            kotlinx.coroutines.delay(900)
+            withContext(Dispatchers.IO) { Rotator.applyWallpaper(ctx, prefs, q) }
+        }
+    }
+
+    fun newQuote() {
         busy = true; status = ""
         scope.launch {
             val q = Rotator.rotate(ctx, notify = false, respectQuietHours = false)
             quote = q; fav = q?.let { prefs.isFavorite(it.id) } ?: false
             hasData = repo.hasData()
+            histIndex = prefs.historyIndex; histSize = prefs.history.size
             if (q == null) status = "No quotes yet. Connect to Wi-Fi and tap Download."
             busy = false
         }
     }
+
+    fun goTo(index: Int) {
+        val q = Rotator.showFromHistory(ctx, index) ?: return
+        quote = q; fav = prefs.isFavorite(q.id); histIndex = index
+        applyWallpaperSoon(q)
+    }
+
+    fun previous() { if (histIndex > 0) goTo(histIndex - 1) }
+    fun next() { if (histIndex < histSize - 1) goTo(histIndex + 1) else if (!busy) newQuote() }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)) {
         Text("Article Quotes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
@@ -246,7 +276,7 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
         Spacer(Modifier.height(16.dp))
 
         if (!onboarded) {
-            OnboardingCard(prefs, repo, onDone = { onboarded = true; next() })
+            OnboardingCard(prefs, repo, onDone = { onboarded = true; newQuote() })
             Spacer(Modifier.height(16.dp))
         }
 
@@ -256,7 +286,7 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
                 Column(Modifier.padding(20.dp)) {
                     Text(if (hasData) "Ready for your first quote." else "Download your quotes to get started.", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = { next() }, enabled = !busy) {
+                    Button(onClick = { newQuote() }, enabled = !busy) {
                         if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(if (hasData) "Show a quote" else "Download and show a quote")
                     }
                     if (status.isNotBlank()) Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
@@ -267,12 +297,32 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
             val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, q.id, style, ts, showCtx) {
                 value = withContext(Dispatchers.Default) { QuoteCardRenderer.preview(q, style, ts, 720, showCtx).asImageBitmap() }
             }
+            val swipeThreshold = with(LocalDensity.current) { 72.dp.toPx() }
             Box(
                 Modifier.fillMaxWidth().aspectRatio(1f / 1.6f)
                     .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                    .clickable { onOpen(q.articleId) },
+                    .clickable { onOpen(q.articleId) }
+                    .pointerInput(histIndex, histSize, busy) {
+                        var drag = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { drag = 0f },
+                            onDragEnd = {
+                                if (drag <= -swipeThreshold) next() else if (drag >= swipeThreshold) previous()
+                            },
+                            onHorizontalDrag = { change, amount -> drag += amount; change.consume() },
+                        )
+                    },
             ) {
                 bmp?.let { Image(it, contentDescription = "Current quote: ${q.text}", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { previous() }, enabled = histIndex > 0) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous quote") }
+                Text(
+                    if (histSize > 0) "${histIndex + 1} of $histSize · swipe for more" else "Swipe for more",
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
+                )
+                IconButton(onClick = { next() }, enabled = !busy) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, if (histIndex < histSize - 1) "Next quote" else "New quote") }
             }
             if (q.context.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))
@@ -281,7 +331,7 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
             }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = { next() }, enabled = !busy) {
+                Button(onClick = { newQuote() }, enabled = !busy) {
                     if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("New quote") }
                 }
                 Spacer(Modifier.width(8.dp))
