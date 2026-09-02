@@ -407,9 +407,20 @@ def build_feed(articles: list[dict], feed_dir: Path, cfg: dict) -> dict:
     cats = {}
     for a in feed_articles:
         cats[a["category"]] = cats.get(a["category"], 0) + 1
+    # Keep the previous timestamp when nothing changed, so a quiet day makes no git commit.
+    generated = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+    old_manifest_path = feed_dir / "manifest.json"
+    if old_manifest_path.exists():
+        try:
+            old = json.loads(old_manifest_path.read_text(encoding="utf-8"))
+            old_shards = [(s["name"], s["sha"]) for s in old.get("shards", [])]
+            if old_shards == [(s["name"], s["sha"]) for s in shard_list] and old.get("articleCount") == len(feed_articles):
+                generated = old.get("generated", generated)
+        except (json.JSONDecodeError, KeyError, TypeError):
+            pass
     manifest = {
         "version": 1,
-        "generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
+        "generated": generated,
         "articleCount": len(feed_articles),
         "quoteCount": sum(len(a["quotes"]) for a in feed_articles),
         "categories": cats,
