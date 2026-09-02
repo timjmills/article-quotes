@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Article Quotes</string>
+    <string name="widget_label">Article Quote</string>
+    <string name="widget_description">Shows the current quote from your article archive.</string>
+    <string name="channel_quotes">Quotes</string>
+    <string name="channel_quotes_desc">A new quote from your article archive, on your schedule.</string>
+</resources>

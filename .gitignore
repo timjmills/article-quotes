@@ -1,0 +1,16 @@
+# builder
+builder/.cache/
+builder/daily.log
+builder/__pycache__/
+builder/config.json
+
+# android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/app/*.iml
+*.keystore
+*.jks
