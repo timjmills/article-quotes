@@ -19,6 +19,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.runtime.produceState
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -258,14 +263,17 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
                 }
             }
         } else {
-            val bmp = remember(q.id, prefs.cardStyle, prefs.textScale) {
-                QuoteCardRenderer.preview(q, prefs.cardStyle, prefs.textScale, 720).asImageBitmap()
+            val style = prefs.cardStyle; val ts = prefs.textScale
+            val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, q.id, style, ts) {
+                value = withContext(Dispatchers.Default) { QuoteCardRenderer.preview(q, style, ts, 720).asImageBitmap() }
             }
-            Image(
-                bmp, contentDescription = "Current quote card",
-                modifier = Modifier.fillMaxWidth().aspectRatio(1f / 1.6f).clickable { onOpen(q.articleId) },
-                contentScale = ContentScale.Fit,
-            )
+            Box(
+                Modifier.fillMaxWidth().aspectRatio(1f / 1.6f)
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                    .clickable { onOpen(q.articleId) },
+            ) {
+                bmp?.let { Image(it, contentDescription = "Current quote: ${q.text}", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+            }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = { next() }, enabled = !busy) {
@@ -439,8 +447,8 @@ fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) 
     var favTick by remember { mutableIntStateOf(0) }
     LaunchedEffect(id) { loading = true; detail = repo.article(id); loading = false }
 
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(top = 36.dp, start = 4.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
             Text(detail?.let { Categories.short(it.category) } ?: "", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
             detail?.let { d -> IconButton(onClick = { shareArticle(ctx, d) }) { Icon(Icons.Default.Share, "Share") } }
@@ -453,7 +461,7 @@ fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) 
                 Text("Couldn't load this summary. It downloads on first open, so check your connection and try again.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).navigationBarsPadding()) {
                 Text(d.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                 Text("${d.author} · ${d.dateDisplay}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
                 if (d.source.isNotBlank()) Text(d.source, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

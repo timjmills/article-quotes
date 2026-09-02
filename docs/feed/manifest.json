@@ -1,0 +1,1479 @@
+{
+  "version": 1,
+  "generated": "2026-09-02T17:39:48+00:00",
+  "articleCount": 4873,
+  "quoteCount": 28081,
+  "categories": {
+    "Education - Learning & Curriculum": 1133,
+    "Leadership": 1610,
+    "Education - Practice & Culture": 1541,
+    "Family": 224,
+    "Classical Education": 43,
+    "Education - Ed-Tech": 322
+  },
+  "shards": [
+    {
+      "name": "2009-05",
+      "path": "quotes/2009-05.json",
+      "sha": "6c05c42a3b0e57bb",
+      "articles": 2,
+      "quotes": 12
+    },
+    {
+      "name": "2009-06",
+      "path": "quotes/2009-06.json",
+      "sha": "1c63e888801a6f3d",
+      "articles": 7,
+      "quotes": 44
+    },
+    {
+      "name": "2009-07",
+      "path": "quotes/2009-07.json",
+      "sha": "3eebf33970ee4eba",
+      "articles": 5,
+      "quotes": 32
+    },
+    {
+      "name": "2009-08",
+      "path": "quotes/2009-08.json",
+      "sha": "a848cc76fe704a83",
+      "articles": 5,
+      "quotes": 31
+    },
+    {
+      "name": "2009-09",
+      "path": "quotes/2009-09.json",
+      "sha": "4a2f62ca0a83fa91",
+      "articles": 5,
+      "quotes": 28
+    },
+    {
+      "name": "2009-10",
+      "path": "quotes/2009-10.json",
+      "sha": "17b10012f1126631",
+      "articles": 5,
+      "quotes": 25
+    },
+    {
+      "name": "2009-11",
+      "path": "quotes/2009-11.json",
+      "sha": "a30370566badb340",
+      "articles": 5,
+      "quotes": 28
+    },
+    {
+      "name": "2009-12",
+      "path": "quotes/2009-12.json",
+      "sha": "1aed365b07d47f1f",
+      "articles": 4,
+      "quotes": 21
+    },
+    {
+      "name": "2010-01",
+      "path": "quotes/2010-01.json",
+      "sha": "933b9d1a80963fa7",
+      "articles": 5,
+      "quotes": 28
+    },
+    {
+      "name": "2010-02",
+      "path": "quotes/2010-02.json",
+      "sha": "f51aae82fead6e8c",
+      "articles": 4,
+      "quotes": 25
+    },
+    {
+      "name": "2010-03",
+      "path": "quotes/2010-03.json",
+      "sha": "0e3a0d1e54655d12",
+      "articles": 4,
+      "quotes": 27
+    },
+    {
+      "name": "2010-04",
+      "path": "quotes/2010-04.json",
+      "sha": "8e3e01752e43f2fc",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2010-05",
+      "path": "quotes/2010-05.json",
+      "sha": "df1c27baf3a54838",
+      "articles": 4,
+      "quotes": 25
+    },
+    {
+      "name": "2010-06",
+      "path": "quotes/2010-06.json",
+      "sha": "fcd92da974be601d",
+      "articles": 4,
+      "quotes": 25
+    },
+    {
+      "name": "2010-07",
+      "path": "quotes/2010-07.json",
+      "sha": "c35aa480f374b99a",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2010-08",
+      "path": "quotes/2010-08.json",
+      "sha": "042d5fb7b4763d98",
+      "articles": 4,
+      "quotes": 25
+    },
+    {
+      "name": "2010-09",
+      "path": "quotes/2010-09.json",
+      "sha": "1bd77a61b0fe5fc1",
+      "articles": 4,
+      "quotes": 27
+    },
+    {
+      "name": "2010-10",
+      "path": "quotes/2010-10.json",
+      "sha": "3a0f532481dcb64a",
+      "articles": 5,
+      "quotes": 35
+    },
+    {
+      "name": "2010-11",
+      "path": "quotes/2010-11.json",
+      "sha": "fed49c618d353f2a",
+      "articles": 4,
+      "quotes": 27
+    },
+    {
+      "name": "2010-12",
+      "path": "quotes/2010-12.json",
+      "sha": "6f3c9f873d3d096e",
+      "articles": 3,
+      "quotes": 19
+    },
+    {
+      "name": "2011-01",
+      "path": "quotes/2011-01.json",
+      "sha": "9c3a60a4a14216c6",
+      "articles": 4,
+      "quotes": 28
+    },
+    {
+      "name": "2011-02",
+      "path": "quotes/2011-02.json",
+      "sha": "a7d395105aaf9005",
+      "articles": 4,
+      "quotes": 28
+    },
+    {
+      "name": "2011-03",
+      "path": "quotes/2011-03.json",
+      "sha": "c4da0f2fbc66a43a",
+      "articles": 4,
+      "quotes": 27
+    },
+    {
+      "name": "2011-04",
+      "path": "quotes/2011-04.json",
+      "sha": "4626fb3a72cee5b0",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2011-05",
+      "path": "quotes/2011-05.json",
+      "sha": "43c2d6e0763a4e5f",
+      "articles": 3,
+      "quotes": 16
+    },
+    {
+      "name": "2011-06",
+      "path": "quotes/2011-06.json",
+      "sha": "7160c7a095a648b1",
+      "articles": 4,
+      "quotes": 22
+    },
+    {
+      "name": "2011-07",
+      "path": "quotes/2011-07.json",
+      "sha": "f737bee471f7cbff",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2011-08",
+      "path": "quotes/2011-08.json",
+      "sha": "4addc1af453dab03",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2011-09",
+      "path": "quotes/2011-09.json",
+      "sha": "6702c6f169125dc8",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2011-10",
+      "path": "quotes/2011-10.json",
+      "sha": "15aa28f083bc02a6",
+      "articles": 5,
+      "quotes": 28
+    },
+    {
+      "name": "2011-11",
+      "path": "quotes/2011-11.json",
+      "sha": "62018a1ae613da86",
+      "articles": 4,
+      "quotes": 22
+    },
+    {
+      "name": "2011-12",
+      "path": "quotes/2011-12.json",
+      "sha": "e2bc0a5f0461959b",
+      "articles": 3,
+      "quotes": 15
+    },
+    {
+      "name": "2012-01",
+      "path": "quotes/2012-01.json",
+      "sha": "10018520a732aa8a",
+      "articles": 4,
+      "quotes": 20
+    },
+    {
+      "name": "2012-02",
+      "path": "quotes/2012-02.json",
+      "sha": "c943d2958ad5576d",
+      "articles": 4,
+      "quotes": 20
+    },
+    {
+      "name": "2012-03",
+      "path": "quotes/2012-03.json",
+      "sha": "04036335e4e54d0f",
+      "articles": 5,
+      "quotes": 25
+    },
+    {
+      "name": "2012-04",
+      "path": "quotes/2012-04.json",
+      "sha": "e61a3c2ed7ed099a",
+      "articles": 4,
+      "quotes": 21
+    },
+    {
+      "name": "2012-05",
+      "path": "quotes/2012-05.json",
+      "sha": "cbdaafa1f72a1756",
+      "articles": 4,
+      "quotes": 21
+    },
+    {
+      "name": "2012-06",
+      "path": "quotes/2012-06.json",
+      "sha": "573200e2d71ba125",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2012-07",
+      "path": "quotes/2012-07.json",
+      "sha": "1f2dd883cf7b6d07",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2012-08",
+      "path": "quotes/2012-08.json",
+      "sha": "37e48301c5c764a2",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2012-09",
+      "path": "quotes/2012-09.json",
+      "sha": "32c7d1222c62368e",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2012-10",
+      "path": "quotes/2012-10.json",
+      "sha": "38d90b076397b1de",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2012-11",
+      "path": "quotes/2012-11.json",
+      "sha": "093c14af58dc410d",
+      "articles": 3,
+      "quotes": 18
+    },
+    {
+      "name": "2012-12",
+      "path": "quotes/2012-12.json",
+      "sha": "32fb80af6c3d0ee2",
+      "articles": 3,
+      "quotes": 18
+    },
+    {
+      "name": "2013-01",
+      "path": "quotes/2013-01.json",
+      "sha": "be8d365242d37eb4",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2013-02",
+      "path": "quotes/2013-02.json",
+      "sha": "4a6b0e4b7b9563eb",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2013-03",
+      "path": "quotes/2013-03.json",
+      "sha": "ef9d43b8985d2805",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2013-04",
+      "path": "quotes/2013-04.json",
+      "sha": "4271b719947c5069",
+      "articles": 3,
+      "quotes": 18
+    },
+    {
+      "name": "2013-05",
+      "path": "quotes/2013-05.json",
+      "sha": "d18d1020e76d5f48",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2013-06",
+      "path": "quotes/2013-06.json",
+      "sha": "0f05b52e9f1e1009",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2013-07",
+      "path": "quotes/2013-07.json",
+      "sha": "5ee47e10f09f3504",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2013-08",
+      "path": "quotes/2013-08.json",
+      "sha": "69544c7c136840bf",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2013-09",
+      "path": "quotes/2013-09.json",
+      "sha": "e271d5981e5b3571",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2013-10",
+      "path": "quotes/2013-10.json",
+      "sha": "d91b6d0f8aaa9f58",
+      "articles": 4,
+      "quotes": 21
+    },
+    {
+      "name": "2013-11",
+      "path": "quotes/2013-11.json",
+      "sha": "76f3389dbfea04a9",
+      "articles": 4,
+      "quotes": 21
+    },
+    {
+      "name": "2013-12",
+      "path": "quotes/2013-12.json",
+      "sha": "966c2b020e9e8236",
+      "articles": 2,
+      "quotes": 11
+    },
+    {
+      "name": "2014-01",
+      "path": "quotes/2014-01.json",
+      "sha": "9ec00e83d7bb0b24",
+      "articles": 4,
+      "quotes": 21
+    },
+    {
+      "name": "2014-02",
+      "path": "quotes/2014-02.json",
+      "sha": "53922598cc3b1ad0",
+      "articles": 4,
+      "quotes": 20
+    },
+    {
+      "name": "2014-03",
+      "path": "quotes/2014-03.json",
+      "sha": "f2146f5d8266870f",
+      "articles": 5,
+      "quotes": 26
+    },
+    {
+      "name": "2014-04",
+      "path": "quotes/2014-04.json",
+      "sha": "4267099021d61a58",
+      "articles": 4,
+      "quotes": 22
+    },
+    {
+      "name": "2014-05",
+      "path": "quotes/2014-05.json",
+      "sha": "aa7118f51a118e37",
+      "articles": 5,
+      "quotes": 33
+    },
+    {
+      "name": "2014-06",
+      "path": "quotes/2014-06.json",
+      "sha": "ef43e45dd4536dd4",
+      "articles": 4,
+      "quotes": 25
+    },
+    {
+      "name": "2014-07",
+      "path": "quotes/2014-07.json",
+      "sha": "247b31ad9a8a8bfa",
+      "articles": 4,
+      "quotes": 26
+    },
+    {
+      "name": "2014-08",
+      "path": "quotes/2014-08.json",
+      "sha": "c95ddd35f29beed1",
+      "articles": 5,
+      "quotes": 34
+    },
+    {
+      "name": "2014-09",
+      "path": "quotes/2014-09.json",
+      "sha": "a047be18a591db2b",
+      "articles": 5,
+      "quotes": 31
+    },
+    {
+      "name": "2014-10",
+      "path": "quotes/2014-10.json",
+      "sha": "1fc8cbedc68d9eff",
+      "articles": 6,
+      "quotes": 38
+    },
+    {
+      "name": "2014-11",
+      "path": "quotes/2014-11.json",
+      "sha": "59e7657eb1676968",
+      "articles": 4,
+      "quotes": 25
+    },
+    {
+      "name": "2014-12",
+      "path": "quotes/2014-12.json",
+      "sha": "16e7fcc408f3c571",
+      "articles": 2,
+      "quotes": 12
+    },
+    {
+      "name": "2015-01",
+      "path": "quotes/2015-01.json",
+      "sha": "a1c4e5bcc2fd0013",
+      "articles": 6,
+      "quotes": 35
+    },
+    {
+      "name": "2015-02",
+      "path": "quotes/2015-02.json",
+      "sha": "66eb06ce9284dbaf",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2015-03",
+      "path": "quotes/2015-03.json",
+      "sha": "37f00ba75313a4c8",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2015-04",
+      "path": "quotes/2015-04.json",
+      "sha": "b79ec1556dcb56e5",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2015-05",
+      "path": "quotes/2015-05.json",
+      "sha": "b32c6bd3134f54cf",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2015-06",
+      "path": "quotes/2015-06.json",
+      "sha": "6ae2762c9abcde82",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2015-07",
+      "path": "quotes/2015-07.json",
+      "sha": "83431c5b8e35534d",
+      "articles": 4,
+      "quotes": 25
+    },
+    {
+      "name": "2015-08",
+      "path": "quotes/2015-08.json",
+      "sha": "9608f1fb9ac3b3c9",
+      "articles": 7,
+      "quotes": 42
+    },
+    {
+      "name": "2015-09",
+      "path": "quotes/2015-09.json",
+      "sha": "553f67ee953d8c21",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2015-10",
+      "path": "quotes/2015-10.json",
+      "sha": "78f52643de7888c8",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2015-11",
+      "path": "quotes/2015-11.json",
+      "sha": "40931936ab66fa26",
+      "articles": 3,
+      "quotes": 17
+    },
+    {
+      "name": "2015-12",
+      "path": "quotes/2015-12.json",
+      "sha": "152fa3360f3d86db",
+      "articles": 2,
+      "quotes": 12
+    },
+    {
+      "name": "2016-01",
+      "path": "quotes/2016-01.json",
+      "sha": "9e74fc3438dd25f2",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2016-02",
+      "path": "quotes/2016-02.json",
+      "sha": "b73439d12838a7fb",
+      "articles": 5,
+      "quotes": 32
+    },
+    {
+      "name": "2016-03",
+      "path": "quotes/2016-03.json",
+      "sha": "0500ea892e3d215a",
+      "articles": 4,
+      "quotes": 26
+    },
+    {
+      "name": "2016-04",
+      "path": "quotes/2016-04.json",
+      "sha": "6fccd2879d50c155",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2016-05",
+      "path": "quotes/2016-05.json",
+      "sha": "33139868cb8aef4e",
+      "articles": 4,
+      "quotes": 25
+    },
+    {
+      "name": "2016-06",
+      "path": "quotes/2016-06.json",
+      "sha": "66a4b39ae4449f0e",
+      "articles": 4,
+      "quotes": 28
+    },
+    {
+      "name": "2016-07",
+      "path": "quotes/2016-07.json",
+      "sha": "bc0a783aae3b29e2",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2016-08",
+      "path": "quotes/2016-08.json",
+      "sha": "e64a867d554d2911",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2016-09",
+      "path": "quotes/2016-09.json",
+      "sha": "530e83bd10ce2075",
+      "articles": 4,
+      "quotes": 27
+    },
+    {
+      "name": "2016-10",
+      "path": "quotes/2016-10.json",
+      "sha": "7f18901c4da52f64",
+      "articles": 6,
+      "quotes": 39
+    },
+    {
+      "name": "2016-11",
+      "path": "quotes/2016-11.json",
+      "sha": "552afc753a6a1b80",
+      "articles": 3,
+      "quotes": 21
+    },
+    {
+      "name": "2016-12",
+      "path": "quotes/2016-12.json",
+      "sha": "d33799c37f59713c",
+      "articles": 3,
+      "quotes": 21
+    },
+    {
+      "name": "2017-01",
+      "path": "quotes/2017-01.json",
+      "sha": "016c2be7d7d48d0a",
+      "articles": 4,
+      "quotes": 27
+    },
+    {
+      "name": "2017-02",
+      "path": "quotes/2017-02.json",
+      "sha": "944dcff0a68df29a",
+      "articles": 4,
+      "quotes": 26
+    },
+    {
+      "name": "2017-03",
+      "path": "quotes/2017-03.json",
+      "sha": "ead33d8d5e950447",
+      "articles": 4,
+      "quotes": 28
+    },
+    {
+      "name": "2017-04",
+      "path": "quotes/2017-04.json",
+      "sha": "42a5abcfee1ecf18",
+      "articles": 5,
+      "quotes": 34
+    },
+    {
+      "name": "2017-05",
+      "path": "quotes/2017-05.json",
+      "sha": "c8e814b0dd2c71da",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2017-06",
+      "path": "quotes/2017-06.json",
+      "sha": "e7780b838b214e95",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2017-07",
+      "path": "quotes/2017-07.json",
+      "sha": "a4576f0bab3e2072",
+      "articles": 6,
+      "quotes": 36
+    },
+    {
+      "name": "2017-08",
+      "path": "quotes/2017-08.json",
+      "sha": "f8e1803dfe88ec50",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2017-09",
+      "path": "quotes/2017-09.json",
+      "sha": "a7c868a6077a0b43",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2017-10",
+      "path": "quotes/2017-10.json",
+      "sha": "c6c5973db32143f7",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2017-11",
+      "path": "quotes/2017-11.json",
+      "sha": "4b090255f0432691",
+      "articles": 3,
+      "quotes": 19
+    },
+    {
+      "name": "2017-12",
+      "path": "quotes/2017-12.json",
+      "sha": "66742d69e8aacb1e",
+      "articles": 3,
+      "quotes": 17
+    },
+    {
+      "name": "2018-01",
+      "path": "quotes/2018-01.json",
+      "sha": "8e52a692e5932d76",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2018-02",
+      "path": "quotes/2018-02.json",
+      "sha": "f24d7884a822cf4b",
+      "articles": 4,
+      "quotes": 22
+    },
+    {
+      "name": "2018-03",
+      "path": "quotes/2018-03.json",
+      "sha": "e009570e0f690747",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2018-04",
+      "path": "quotes/2018-04.json",
+      "sha": "e7d0d60bd17174a1",
+      "articles": 4,
+      "quotes": 22
+    },
+    {
+      "name": "2018-05",
+      "path": "quotes/2018-05.json",
+      "sha": "bbe5b48fa9792474",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2018-06",
+      "path": "quotes/2018-06.json",
+      "sha": "38f3a38504106402",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2018-07",
+      "path": "quotes/2018-07.json",
+      "sha": "5b0d8d968c0eca51",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2018-08",
+      "path": "quotes/2018-08.json",
+      "sha": "bdf7bb5131d98627",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2018-09",
+      "path": "quotes/2018-09.json",
+      "sha": "35cd988243c570ba",
+      "articles": 5,
+      "quotes": 30
+    },
+    {
+      "name": "2018-10",
+      "path": "quotes/2018-10.json",
+      "sha": "04bef7fe0d332e7f",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2018-11",
+      "path": "quotes/2018-11.json",
+      "sha": "7c1674a0f2cc056e",
+      "articles": 3,
+      "quotes": 19
+    },
+    {
+      "name": "2018-12",
+      "path": "quotes/2018-12.json",
+      "sha": "465557131fb6eb21",
+      "articles": 3,
+      "quotes": 18
+    },
+    {
+      "name": "2019-01",
+      "path": "quotes/2019-01.json",
+      "sha": "e6b8ef8656cda6ce",
+      "articles": 4,
+      "quotes": 22
+    },
+    {
+      "name": "2019-02",
+      "path": "quotes/2019-02.json",
+      "sha": "9f64cbd2a3495057",
+      "articles": 4,
+      "quotes": 22
+    },
+    {
+      "name": "2019-03",
+      "path": "quotes/2019-03.json",
+      "sha": "7d1fd710f68aa276",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2019-04",
+      "path": "quotes/2019-04.json",
+      "sha": "3912e1a3463844f5",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2019-05",
+      "path": "quotes/2019-05.json",
+      "sha": "083229cf6e8123c5",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2019-06",
+      "path": "quotes/2019-06.json",
+      "sha": "9e1d985adbdebbea",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2019-07",
+      "path": "quotes/2019-07.json",
+      "sha": "8f42d591965dd637",
+      "articles": 3,
+      "quotes": 17
+    },
+    {
+      "name": "2019-08",
+      "path": "quotes/2019-08.json",
+      "sha": "d51cb06ba8ecf4f3",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2019-09",
+      "path": "quotes/2019-09.json",
+      "sha": "7c130bc7cb6e6a62",
+      "articles": 4,
+      "quotes": 22
+    },
+    {
+      "name": "2019-10",
+      "path": "quotes/2019-10.json",
+      "sha": "0f06a299eb77e335",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2019-11",
+      "path": "quotes/2019-11.json",
+      "sha": "1ceac01a15f892e3",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2019-12",
+      "path": "quotes/2019-12.json",
+      "sha": "a0301d45845d8f24",
+      "articles": 2,
+      "quotes": 12
+    },
+    {
+      "name": "2020-01",
+      "path": "quotes/2020-01.json",
+      "sha": "6f2d79bfc2a2595c",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2020-02",
+      "path": "quotes/2020-02.json",
+      "sha": "b78daf2d4b20432a",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2020-03",
+      "path": "quotes/2020-03.json",
+      "sha": "b62649ab8b7a3562",
+      "articles": 4,
+      "quotes": 24
+    },
+    {
+      "name": "2020-04",
+      "path": "quotes/2020-04.json",
+      "sha": "240dbe5a7aaf2257",
+      "articles": 3,
+      "quotes": 18
+    },
+    {
+      "name": "2020-05",
+      "path": "quotes/2020-05.json",
+      "sha": "3136150efd4e2591",
+      "articles": 10,
+      "quotes": 62
+    },
+    {
+      "name": "2020-06",
+      "path": "quotes/2020-06.json",
+      "sha": "a472a8a072bb4bf8",
+      "articles": 5,
+      "quotes": 32
+    },
+    {
+      "name": "2020-07",
+      "path": "quotes/2020-07.json",
+      "sha": "982af3548faecdbc",
+      "articles": 7,
+      "quotes": 43
+    },
+    {
+      "name": "2020-08",
+      "path": "quotes/2020-08.json",
+      "sha": "ad8f6425be083153",
+      "articles": 8,
+      "quotes": 48
+    },
+    {
+      "name": "2020-09",
+      "path": "quotes/2020-09.json",
+      "sha": "244a5d1a8f81fb41",
+      "articles": 6,
+      "quotes": 37
+    },
+    {
+      "name": "2020-10",
+      "path": "quotes/2020-10.json",
+      "sha": "f9b0b4aec38c979f",
+      "articles": 6,
+      "quotes": 37
+    },
+    {
+      "name": "2020-11",
+      "path": "quotes/2020-11.json",
+      "sha": "6aa8f366c4ff026e",
+      "articles": 30,
+      "quotes": 178
+    },
+    {
+      "name": "2020-12",
+      "path": "quotes/2020-12.json",
+      "sha": "6ad9f9486db60347",
+      "articles": 6,
+      "quotes": 41
+    },
+    {
+      "name": "2021-01",
+      "path": "quotes/2021-01.json",
+      "sha": "59c50eb850d48e45",
+      "articles": 8,
+      "quotes": 50
+    },
+    {
+      "name": "2021-02",
+      "path": "quotes/2021-02.json",
+      "sha": "12515687efa0c0e4",
+      "articles": 6,
+      "quotes": 37
+    },
+    {
+      "name": "2021-03",
+      "path": "quotes/2021-03.json",
+      "sha": "6adf648f6b0f2210",
+      "articles": 7,
+      "quotes": 43
+    },
+    {
+      "name": "2021-04",
+      "path": "quotes/2021-04.json",
+      "sha": "88e71601890a42ae",
+      "articles": 5,
+      "quotes": 29
+    },
+    {
+      "name": "2021-05",
+      "path": "quotes/2021-05.json",
+      "sha": "9767a0e9ba5d0b37",
+      "articles": 8,
+      "quotes": 47
+    },
+    {
+      "name": "2021-06",
+      "path": "quotes/2021-06.json",
+      "sha": "58d4e25ad760c08a",
+      "articles": 6,
+      "quotes": 39
+    },
+    {
+      "name": "2021-07",
+      "path": "quotes/2021-07.json",
+      "sha": "d40826c92cd76164",
+      "articles": 9,
+      "quotes": 54
+    },
+    {
+      "name": "2021-08",
+      "path": "quotes/2021-08.json",
+      "sha": "473f08e5b09ebf8f",
+      "articles": 10,
+      "quotes": 57
+    },
+    {
+      "name": "2021-09",
+      "path": "quotes/2021-09.json",
+      "sha": "d0b943118bfff567",
+      "articles": 12,
+      "quotes": 72
+    },
+    {
+      "name": "2021-10",
+      "path": "quotes/2021-10.json",
+      "sha": "198c7eb3e68401f6",
+      "articles": 9,
+      "quotes": 55
+    },
+    {
+      "name": "2021-11",
+      "path": "quotes/2021-11.json",
+      "sha": "b0b7a4f6ad3a677a",
+      "articles": 7,
+      "quotes": 44
+    },
+    {
+      "name": "2021-12",
+      "path": "quotes/2021-12.json",
+      "sha": "5a0eae66a3234093",
+      "articles": 4,
+      "quotes": 23
+    },
+    {
+      "name": "2022-01",
+      "path": "quotes/2022-01.json",
+      "sha": "bdea50fe5f7039e8",
+      "articles": 7,
+      "quotes": 40
+    },
+    {
+      "name": "2022-02",
+      "path": "quotes/2022-02.json",
+      "sha": "29ba4d187fe3811c",
+      "articles": 5,
+      "quotes": 27
+    },
+    {
+      "name": "2022-03",
+      "path": "quotes/2022-03.json",
+      "sha": "52da6c19fdc74a24",
+      "articles": 12,
+      "quotes": 68
+    },
+    {
+      "name": "2022-04",
+      "path": "quotes/2022-04.json",
+      "sha": "3b1a5fafb98eafc8",
+      "articles": 11,
+      "quotes": 56
+    },
+    {
+      "name": "2022-05",
+      "path": "quotes/2022-05.json",
+      "sha": "563d5ff790b74817",
+      "articles": 15,
+      "quotes": 83
+    },
+    {
+      "name": "2022-06",
+      "path": "quotes/2022-06.json",
+      "sha": "bbeead354123ac4a",
+      "articles": 17,
+      "quotes": 101
+    },
+    {
+      "name": "2022-07",
+      "path": "quotes/2022-07.json",
+      "sha": "f5421365f0c5c055",
+      "articles": 6,
+      "quotes": 33
+    },
+    {
+      "name": "2022-08",
+      "path": "quotes/2022-08.json",
+      "sha": "b51825d7f56cd925",
+      "articles": 20,
+      "quotes": 112
+    },
+    {
+      "name": "2022-09",
+      "path": "quotes/2022-09.json",
+      "sha": "274829649545bcf9",
+      "articles": 17,
+      "quotes": 93
+    },
+    {
+      "name": "2022-10",
+      "path": "quotes/2022-10.json",
+      "sha": "6f7b3afd3ef31537",
+      "articles": 18,
+      "quotes": 108
+    },
+    {
+      "name": "2022-11",
+      "path": "quotes/2022-11.json",
+      "sha": "bbae18f849ed6022",
+      "articles": 16,
+      "quotes": 97
+    },
+    {
+      "name": "2022-12",
+      "path": "quotes/2022-12.json",
+      "sha": "75dfc8c1c64d02ab",
+      "articles": 16,
+      "quotes": 100
+    },
+    {
+      "name": "2023-01",
+      "path": "quotes/2023-01.json",
+      "sha": "0ad294003bf62d77",
+      "articles": 15,
+      "quotes": 86
+    },
+    {
+      "name": "2023-02",
+      "path": "quotes/2023-02.json",
+      "sha": "ded60ba15436c5aa",
+      "articles": 17,
+      "quotes": 99
+    },
+    {
+      "name": "2023-03",
+      "path": "quotes/2023-03.json",
+      "sha": "586f29e54e5533fa",
+      "articles": 16,
+      "quotes": 93
+    },
+    {
+      "name": "2023-04",
+      "path": "quotes/2023-04.json",
+      "sha": "2fb82c1f346b7a90",
+      "articles": 17,
+      "quotes": 105
+    },
+    {
+      "name": "2023-05",
+      "path": "quotes/2023-05.json",
+      "sha": "6c3c8f1bf911589a",
+      "articles": 28,
+      "quotes": 149
+    },
+    {
+      "name": "2023-06",
+      "path": "quotes/2023-06.json",
+      "sha": "8a3d1260715ccd0c",
+      "articles": 36,
+      "quotes": 195
+    },
+    {
+      "name": "2023-07",
+      "path": "quotes/2023-07.json",
+      "sha": "4af451c791dcda91",
+      "articles": 29,
+      "quotes": 166
+    },
+    {
+      "name": "2023-08",
+      "path": "quotes/2023-08.json",
+      "sha": "eda09d32f834fec2",
+      "articles": 32,
+      "quotes": 190
+    },
+    {
+      "name": "2023-09",
+      "path": "quotes/2023-09.json",
+      "sha": "664594b90ab6186a",
+      "articles": 42,
+      "quotes": 238
+    },
+    {
+      "name": "2023-10",
+      "path": "quotes/2023-10.json",
+      "sha": "4a8d53fd40e3967a",
+      "articles": 44,
+      "quotes": 235
+    },
+    {
+      "name": "2023-11",
+      "path": "quotes/2023-11.json",
+      "sha": "ea1d2f39f4f8b48a",
+      "articles": 54,
+      "quotes": 343
+    },
+    {
+      "name": "2023-12",
+      "path": "quotes/2023-12.json",
+      "sha": "f4a1b9a26f4ec0fd",
+      "articles": 40,
+      "quotes": 252
+    },
+    {
+      "name": "2024-01",
+      "path": "quotes/2024-01.json",
+      "sha": "9172c9bf56d494a6",
+      "articles": 39,
+      "quotes": 213
+    },
+    {
+      "name": "2024-02",
+      "path": "quotes/2024-02.json",
+      "sha": "3db20850c81cfaa6",
+      "articles": 46,
+      "quotes": 271
+    },
+    {
+      "name": "2024-03",
+      "path": "quotes/2024-03.json",
+      "sha": "40a86a38cfb805fc",
+      "articles": 42,
+      "quotes": 240
+    },
+    {
+      "name": "2024-04",
+      "path": "quotes/2024-04.json",
+      "sha": "fe07c8deb29ca496",
+      "articles": 40,
+      "quotes": 216
+    },
+    {
+      "name": "2024-05",
+      "path": "quotes/2024-05.json",
+      "sha": "8eeccfc911a67421",
+      "articles": 48,
+      "quotes": 256
+    },
+    {
+      "name": "2024-06",
+      "path": "quotes/2024-06.json",
+      "sha": "a940a59d4519c800",
+      "articles": 50,
+      "quotes": 264
+    },
+    {
+      "name": "2024-07",
+      "path": "quotes/2024-07.json",
+      "sha": "3267be2d165f0bc7",
+      "articles": 49,
+      "quotes": 269
+    },
+    {
+      "name": "2024-08",
+      "path": "quotes/2024-08.json",
+      "sha": "562d03e0584f6585",
+      "articles": 41,
+      "quotes": 217
+    },
+    {
+      "name": "2024-09",
+      "path": "quotes/2024-09.json",
+      "sha": "79fe1f201da579cd",
+      "articles": 49,
+      "quotes": 267
+    },
+    {
+      "name": "2024-10",
+      "path": "quotes/2024-10.json",
+      "sha": "618fba361595016f",
+      "articles": 55,
+      "quotes": 305
+    },
+    {
+      "name": "2024-11",
+      "path": "quotes/2024-11.json",
+      "sha": "cdc251d4dfef11a1",
+      "articles": 74,
+      "quotes": 446
+    },
+    {
+      "name": "2024-12",
+      "path": "quotes/2024-12.json",
+      "sha": "61ddb38a8dcb2dc8",
+      "articles": 65,
+      "quotes": 358
+    },
+    {
+      "name": "2025-01",
+      "path": "quotes/2025-01.json",
+      "sha": "1b446ad2dd4bf1e9",
+      "articles": 61,
+      "quotes": 344
+    },
+    {
+      "name": "2025-02",
+      "path": "quotes/2025-02.json",
+      "sha": "87cacc02e4b2d4d4",
+      "articles": 49,
+      "quotes": 273
+    },
+    {
+      "name": "2025-03",
+      "path": "quotes/2025-03.json",
+      "sha": "30f05598f3de4982",
+      "articles": 59,
+      "quotes": 319
+    },
+    {
+      "name": "2025-04",
+      "path": "quotes/2025-04.json",
+      "sha": "17d7c41dedc6c6a4",
+      "articles": 50,
+      "quotes": 264
+    },
+    {
+      "name": "2025-05",
+      "path": "quotes/2025-05.json",
+      "sha": "810376711bf29289",
+      "articles": 65,
+      "quotes": 347
+    },
+    {
+      "name": "2025-06",
+      "path": "quotes/2025-06.json",
+      "sha": "df753580b52f8bdc",
+      "articles": 52,
+      "quotes": 280
+    },
+    {
+      "name": "2025-07",
+      "path": "quotes/2025-07.json",
+      "sha": "5c900807e040c10f",
+      "articles": 55,
+      "quotes": 290
+    },
+    {
+      "name": "2025-08",
+      "path": "quotes/2025-08.json",
+      "sha": "9a516bb172ea32cb",
+      "articles": 38,
+      "quotes": 195
+    },
+    {
+      "name": "2025-09",
+      "path": "quotes/2025-09.json",
+      "sha": "c7d71fc57f2feb50",
+      "articles": 60,
+      "quotes": 324
+    },
+    {
+      "name": "2025-10",
+      "path": "quotes/2025-10.json",
+      "sha": "251ae5afaa3bac2e",
+      "articles": 60,
+      "quotes": 318
+    },
+    {
+      "name": "2025-11",
+      "path": "quotes/2025-11.json",
+      "sha": "ff30c4de714bcd25",
+      "articles": 79,
+      "quotes": 443
+    },
+    {
+      "name": "2025-12",
+      "path": "quotes/2025-12.json",
+      "sha": "f26978423ab00b8d",
+      "articles": 192,
+      "quotes": 1175
+    },
+    {
+      "name": "2026-01",
+      "path": "quotes/2026-01.json",
+      "sha": "d81441a754864e07",
+      "articles": 119,
+      "quotes": 648
+    },
+    {
+      "name": "2026-02",
+      "path": "quotes/2026-02.json",
+      "sha": "aa2d4c8cbc5e348c",
+      "articles": 126,
+      "quotes": 683
+    },
+    {
+      "name": "2026-03",
+      "path": "quotes/2026-03.json",
+      "sha": "a410f775ca03ecc5",
+      "articles": 131,
+      "quotes": 670
+    },
+    {
+      "name": "2026-04",
+      "path": "quotes/2026-04.json",
+      "sha": "f81ec57bd3d754e0",
+      "articles": 126,
+      "quotes": 623
+    },
+    {
+      "name": "2026-05",
+      "path": "quotes/2026-05.json",
+      "sha": "c1f699e2f15be21a",
+      "articles": 481,
+      "quotes": 2779
+    },
+    {
+      "name": "2026-06",
+      "path": "quotes/2026-06.json",
+      "sha": "aa2ca40cac8c93a9",
+      "articles": 344,
+      "quotes": 1934
+    },
+    {
+      "name": "2026-07",
+      "path": "quotes/2026-07.json",
+      "sha": "755119deecdca765",
+      "articles": 328,
+      "quotes": 2059
+    },
+    {
+      "name": "2026-08",
+      "path": "quotes/2026-08.json",
+      "sha": "8a6e92e4b5750d52",
+      "articles": 519,
+      "quotes": 3220
+    },
+    {
+      "name": "2026-09",
+      "path": "quotes/2026-09.json",
+      "sha": "6f4ad7e12a5fd078",
+      "articles": 30,
+      "quotes": 172
+    }
+  ]
+}
