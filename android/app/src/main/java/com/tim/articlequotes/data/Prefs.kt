@@ -18,7 +18,7 @@ class Prefs(ctx: Context) {
     /** Minutes between new quotes. Default: every 3 hours. */
     var intervalMinutes: Int
         get() = sp.getInt("intervalMinutes", 180)
-        set(v) = sp.edit().putInt("intervalMinutes", v.coerceAtLeast(15)).apply()
+        set(v) = sp.edit().putInt("intervalMinutes", v.coerceAtLeast(1)).apply()
 
     var quietStartHour: Int
         get() = sp.getInt("quietStart", 22)
@@ -48,7 +48,7 @@ class Prefs(ctx: Context) {
 
     var textScale: Float
         get() = sp.getFloat("textScale", 1.0f)
-        set(v) = sp.edit().putFloat("textScale", v.coerceIn(0.8f, 1.6f)).apply()
+        set(v) = sp.edit().putFloat("textScale", v.coerceIn(0.8f, 2.2f)).apply()
 
     /** Quotes longer than this are kept for the app only, not the lock screen. */
     var maxWallpaperChars: Int

@@ -1,6 +1,7 @@
 package com.tim.articlequotes.ui
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -16,6 +17,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,8 +47,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
@@ -169,8 +177,11 @@ fun AppRoot() {
     val ctx = LocalContext.current
     val prefs = remember { Prefs(ctx) }
     val repo = remember { FeedRepo(ctx, prefs) }
+    val scope = rememberCoroutineScope()
+    val nav = remember { QuoteNav(ctx.applicationContext, prefs, repo, scope) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var openArticle by rememberSaveable { mutableStateOf<String?>(null) }
+    var fullscreen by rememberSaveable { mutableStateOf(false) }
     var textScale by remember { mutableFloatStateOf(prefs.textScale) }
 
     val pending = MainActivity.pendingArticle.value
@@ -181,11 +192,21 @@ fun AppRoot() {
     MaterialTheme(colorScheme = Scheme, typography = remember(textScale) { scaledTypography(textScale) }) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             val article = openArticle
-            if (article != null) {
-                BackHandler { openArticle = null }
-                ArticleScreen(article, repo, prefs, onBack = { openArticle = null })
-            } else {
-                Scaffold(
+            when {
+                article != null -> {
+                    BackHandler { openArticle = null }
+                    ArticleScreen(article, repo, prefs, onBack = { openArticle = null })
+                }
+                fullscreen -> {
+                    BackHandler { fullscreen = false }
+                    FullScreenQuote(
+                        nav, prefs, textScale,
+                        onTextScale = { textScale = it },
+                        onOpen = { fullscreen = false; openArticle = it },
+                        onClose = { fullscreen = false },
+                    )
+                }
+                else -> Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
                         NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
@@ -198,7 +219,7 @@ fun AppRoot() {
                 ) { pad ->
                     Box(Modifier.padding(pad).fillMaxSize()) {
                         when (tab) {
-                            0 -> TodayScreen(prefs, repo, onOpen = { openArticle = it })
+                            0 -> TodayScreen(nav, prefs, repo, onOpen = { openArticle = it }, onFullscreen = { fullscreen = true })
                             1 -> BrowseScreen(prefs, repo, onOpen = { openArticle = it })
                             2 -> SavedScreen(prefs, onOpen = { openArticle = it })
                             else -> SettingsScreen(prefs, repo, onTextScale = { textScale = it })
@@ -215,81 +236,34 @@ fun AppRoot() {
 // ---------------------------------------------------------------------------
 
 @Composable
-fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
+fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit, onFullscreen: () -> Unit) {
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var quote by remember { mutableStateOf(prefs.currentQuote) }
-    var fav by remember { mutableStateOf(quote?.let { prefs.isFavorite(it.id) } ?: false) }
-    var busy by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("") }
     var onboarded by remember { mutableStateOf(prefs.onboarded) }
-    var hasData by remember { mutableStateOf(repo.hasData()) }
-    // Position in the history of shown quotes; swiping moves through it.
-    var histIndex by remember { mutableIntStateOf(prefs.historyIndex) }
-    var histSize by remember { mutableIntStateOf(prefs.history.size) }
-
-    LifecycleResumeEffect(Unit) {
-        quote = prefs.currentQuote
-        fav = quote?.let { prefs.isFavorite(it.id) } ?: false
-        hasData = repo.hasData()
-        histIndex = prefs.historyIndex; histSize = prefs.history.size
-        onPauseOrDispose { }
-    }
-
-    var wallpaperJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
-
-    fun applyWallpaperSoon(q: Quote) {
-        wallpaperJob?.cancel()
-        wallpaperJob = scope.launch {
-            kotlinx.coroutines.delay(900)
-            withContext(Dispatchers.IO) { Rotator.applyWallpaper(ctx, prefs, q) }
-        }
-    }
-
-    fun newQuote() {
-        busy = true; status = ""
-        scope.launch {
-            val q = Rotator.rotate(ctx, notify = false, respectQuietHours = false)
-            quote = q; fav = q?.let { prefs.isFavorite(it.id) } ?: false
-            hasData = repo.hasData()
-            histIndex = prefs.historyIndex; histSize = prefs.history.size
-            if (q == null) status = "No quotes yet. Connect to Wi-Fi and tap Download."
-            busy = false
-        }
-    }
-
-    fun goTo(index: Int) {
-        val q = Rotator.showFromHistory(ctx, index) ?: return
-        quote = q; fav = prefs.isFavorite(q.id); histIndex = index
-        applyWallpaperSoon(q)
-    }
-
-    fun previous() { if (histIndex > 0) goTo(histIndex - 1) }
-    fun next() { if (histIndex < histSize - 1) goTo(histIndex + 1) else if (!busy) newQuote() }
+    LifecycleResumeEffect(Unit) { nav.refresh(); onPauseOrDispose { } }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)) {
         Text("Article Quotes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         Text(
-            if (hasData) prefs.lastSyncMessage.ifBlank { "Quotes from your article archive" } else "Quotes from your article archive",
+            if (nav.hasData) prefs.lastSyncMessage.ifBlank { "Quotes from your article archive" } else "Quotes from your article archive",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(16.dp))
 
         if (!onboarded) {
-            OnboardingCard(prefs, repo, onDone = { onboarded = true; newQuote() })
+            OnboardingCard(prefs, repo, onDone = { onboarded = true; nav.newQuote() })
             Spacer(Modifier.height(16.dp))
         }
 
-        val q = quote
+        val q = nav.quote
         if (q == null) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(20.dp)) {
-                    Text(if (hasData) "Ready for your first quote." else "Download your quotes to get started.", style = MaterialTheme.typography.titleMedium)
+                    Text(if (nav.hasData) "Ready for your first quote." else "Download your quotes to get started.", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = { newQuote() }, enabled = !busy) {
-                        if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(if (hasData) "Show a quote" else "Download and show a quote")
+                    Button(onClick = { nav.newQuote() }, enabled = !nav.busy) {
+                        if (nav.busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(if (nav.hasData) "Show a quote" else "Download and show a quote")
                     }
-                    if (status.isNotBlank()) Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                    if (nav.status.isNotBlank()) Text(nav.status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
                 }
             }
         } else {
@@ -301,28 +275,19 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
             Box(
                 Modifier.fillMaxWidth().aspectRatio(1f / 1.6f)
                     .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
-                    .clickable { onOpen(q.articleId) }
-                    .pointerInput(histIndex, histSize, busy) {
-                        var drag = 0f
-                        detectHorizontalDragGestures(
-                            onDragStart = { drag = 0f },
-                            onDragEnd = {
-                                if (drag <= -swipeThreshold) next() else if (drag >= swipeThreshold) previous()
-                            },
-                            onHorizontalDrag = { change, amount -> drag += amount; change.consume() },
-                        )
-                    },
+                    .clickable { onFullscreen() }
+                    .quoteSwipe(nav, swipeThreshold),
             ) {
-                bmp?.let { Image(it, contentDescription = "Current quote: ${q.text}", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+                bmp?.let { Image(it, contentDescription = "Current quote: ${q.text}. Tap for full screen.", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
             }
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { previous() }, enabled = histIndex > 0) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous quote") }
+                IconButton(onClick = { nav.previous() }, enabled = nav.hasPrevious) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous quote") }
                 Text(
-                    if (histSize > 0) "${histIndex + 1} of $histSize · swipe for more" else "Swipe for more",
+                    if (nav.histSize > 0) "${nav.histIndex + 1} of ${nav.histSize} \u00b7 swipe, or tap for full screen" else "Tap the card for full screen",
                     style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
                 )
-                IconButton(onClick = { next() }, enabled = !busy) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, if (histIndex < histSize - 1) "Next quote" else "New quote") }
+                IconButton(onClick = { nav.next() }, enabled = !nav.busy) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, if (nav.hasNext) "Next quote" else "New quote") }
             }
             if (q.context.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))
@@ -331,14 +296,14 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
             }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = { newQuote() }, enabled = !busy) {
-                    if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("New quote") }
+                Button(onClick = { nav.newQuote() }, enabled = !nav.busy) {
+                    if (nav.busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("New quote") }
                 }
                 Spacer(Modifier.width(8.dp))
                 OutlinedButton(onClick = { onOpen(q.articleId) }) { Text("Read summary") }
                 Spacer(Modifier.weight(1f))
-                IconButton(onClick = { fav = prefs.toggleFavorite(q) }) {
-                    Icon(if (fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Save", tint = MaterialTheme.colorScheme.primary)
+                IconButton(onClick = { nav.toggleFavorite() }) {
+                    Icon(if (nav.fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Save", tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = { share(ctx, q) }) { Icon(Icons.Default.Share, "Share") }
             }
@@ -347,14 +312,80 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
             Text(
                 buildString {
                     append("A new quote every ${intervalLabel(prefs.intervalMinutes).lowercase()}")
-                    if (prefs.quietEnabled) append(", quiet ${prefs.quietStartHour}:00–${prefs.quietEndHour}:00")
+                    if (prefs.quietEnabled) append(", quiet ${prefs.quietStartHour}:00\u2013${prefs.quietEndHour}:00")
                     append(". Lock screen: ${if (mode == "off") "off" else "on"}.")
                 },
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (status.isNotBlank()) Text(status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+            if (nav.status.isNotBlank()) Text(nav.status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
         }
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Full screen
+// ---------------------------------------------------------------------------
+
+/** Immersive view: the quote card fills the screen; swipe to move, tap to show or hide the controls. */
+@Composable
+fun FullScreenQuote(
+    nav: QuoteNav, prefs: Prefs, textScale: Float,
+    onTextScale: (Float) -> Unit, onOpen: (String) -> Unit, onClose: () -> Unit,
+) {
+    val ctx = LocalContext.current
+    val view = LocalView.current
+    DisposableEffect(Unit) {
+        val window = (view.context as? Activity)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        controller?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller?.hide(WindowInsetsCompat.Type.systemBars())
+        onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+    var controls by remember { mutableStateOf(true) }
+    val q = nav.quote
+    fun setScale(v: Float) {
+        val s = v.coerceIn(0.8f, 2.2f)
+        prefs.textScale = s
+        onTextScale(s)
+        nav.applyWallpaperSoon()
+    }
+
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
+        val wPx = constraints.maxWidth; val hPx = constraints.maxHeight
+        val style = prefs.cardStyle; val showCtx = prefs.showContext
+        val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, q?.id, style, textScale, showCtx, wPx, hPx) {
+            value = q?.let { withContext(Dispatchers.Default) { QuoteCardRenderer.render(it, wPx, hPx, style, textScale, preview = true, showContext = showCtx).asImageBitmap() } }
+        }
+        val swipeThreshold = with(LocalDensity.current) { 72.dp.toPx() }
+        Box(
+            Modifier.fillMaxSize()
+                .quoteSwipe(nav, swipeThreshold)
+                .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { controls = !controls },
+        ) {
+            bmp?.let { Image(it, contentDescription = q?.text, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds) }
+            if (q == null) Text("No quote yet", color = Color.White, modifier = Modifier.align(Alignment.Center))
+        }
+        if (controls) {
+            Row(Modifier.fillMaxWidth().statusBarsPadding().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close full screen", tint = Color.White) }
+                Spacer(Modifier.weight(1f))
+                if (nav.histSize > 0) Text("${nav.histIndex + 1} of ${nav.histSize}", color = Color(0xCCFFFFFF), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(end = 12.dp))
+            }
+            Row(
+                Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(12.dp)
+                    .background(Color(0xB3000000), RoundedCornerShape(28.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                IconButton(onClick = { nav.previous() }, enabled = nav.hasPrevious) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous quote", tint = if (nav.hasPrevious) Color.White else Color(0x66FFFFFF)) }
+                TextButton(onClick = { setScale(textScale - 0.1f) }, enabled = textScale > 0.81f) { Text("A\u2212", color = Color.White, fontSize = 16.sp) }
+                TextButton(onClick = { setScale(textScale + 0.1f) }, enabled = textScale < 2.19f) { Text("A+", color = Color.White, fontSize = 22.sp) }
+                IconButton(onClick = { nav.toggleFavorite() }) { Icon(if (nav.fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Save", tint = Color(0xFFE0B04A)) }
+                IconButton(onClick = { q?.let { share(ctx, it) } }) { Icon(Icons.Default.Share, "Share", tint = Color.White) }
+                TextButton(onClick = { q?.let { onOpen(it.articleId) } }) { Text("Summary", color = Color.White) }
+                IconButton(onClick = { nav.next() }, enabled = !nav.busy) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, if (nav.hasNext) "Next quote" else "New quote", tint = Color.White) }
+            }
+        }
     }
 }
 
@@ -576,13 +607,16 @@ private fun SectionHeader(t: String) {
 // Settings
 // ---------------------------------------------------------------------------
 
-private val INTERVALS = listOf(60, 120, 180, 240, 360, 720, 1440)
+private val INTERVALS = listOf(1, 2, 5, 10, 15, 30, 60, 120, 180, 240, 360, 720, 1440, 2880, 10080)
 
 fun intervalLabel(m: Int): String = when {
+    m == 1 -> "Minute"
     m < 60 -> "$m min"
     m == 60 -> "Hour"
     m < 1440 -> "${m / 60} hours"
-    else -> "Day"
+    m == 1440 -> "Day"
+    m < 10080 -> "${m / 1440} days"
+    else -> "Week"
 }
 
 @Composable
@@ -616,6 +650,10 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
         SectionHeader("How often")
         Text("A new quote appears…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         ChipRow(INTERVALS, interval, label = { "Every " + intervalLabel(it).lowercase() }) { interval = it; prefs.intervalMinutes = it; Scheduler.reschedule(ctx) }
+        if (interval < 15) Text(
+            "Under 15 minutes the phone uses exact alarms and redraws the lock screen each time, which uses more battery.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp),
+        )
 
         Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -668,8 +706,8 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
         }
 
         SectionHeader("Text size")
-        Text("Applies to the app and the lock-screen card.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Slider(scale, { scale = it }, onValueChangeFinished = { prefs.textScale = scale; onTextScale(scale); reapplyWallpaper() }, valueRange = 0.8f..1.6f)
+        Text("Applies to the app, full screen and the lock-screen card. In full screen you can also use A\u2212 / A+.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Slider(scale, { scale = it }, onValueChangeFinished = { prefs.textScale = scale; onTextScale(scale); reapplyWallpaper() }, valueRange = 0.8f..2.2f)
         Text("“The best leaders listen first.”", fontFamily = FontFamily.Serif, fontSize = 20.sp * scale, lineHeight = 26.sp * scale)
 
         SectionHeader("Updates")
