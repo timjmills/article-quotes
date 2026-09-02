@@ -11,9 +11,10 @@ plugins {
 // `assembleRelease` always produces an installable APK.
 val ksPath = System.getenv("AQ_KEYSTORE_PATH")
 val ksPass = System.getenv("AQ_KEYSTORE_PASSWORD")
-val keyAlias = System.getenv("AQ_KEY_ALIAS")
-val keyPass = System.getenv("AQ_KEY_PASSWORD")
-val hasReleaseKey = !ksPath.isNullOrBlank() && file(ksPath).exists()
+val envKeyAlias = System.getenv("AQ_KEY_ALIAS")
+val envKeyPass = System.getenv("AQ_KEY_PASSWORD")
+val hasReleaseKey = !ksPath.isNullOrBlank() && file(ksPath).exists() && !envKeyAlias.isNullOrBlank()
+println("ArticleQuotes signing: " + if (hasReleaseKey) "release keystore" else "debug keystore (set AQ_KEYSTORE_* to sign for real)")
 
 android {
     namespace = "com.tim.articlequotes"
@@ -33,8 +34,8 @@ android {
             create("release") {
                 storeFile = file(ksPath!!)
                 storePassword = ksPass
-                this.keyAlias = keyAlias
-                this.keyPassword = keyPass
+                keyAlias = envKeyAlias
+                keyPassword = envKeyPass
             }
         }
     }

@@ -54,11 +54,16 @@ object Notifications {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val attribution = "— ${q.author} · ${q.title}"
+        val big = buildString {
+            append("“").append(q.text).append("”")
+            if (q.context.isNotBlank()) append("\n\nWhy it matters: ").append(q.context)
+            append("\n\n").append(attribution)
+        }
         val n = NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(q.text)
-            .setContentText(attribution)
-            .setStyle(NotificationCompat.BigTextStyle().bigText("“${q.text}”\n\n$attribution").setSummaryText(q.category))
+            .setContentText(if (q.context.isNotBlank()) q.context else attribution)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(big).setSummaryText(q.category))
             .setContentIntent(openPi)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

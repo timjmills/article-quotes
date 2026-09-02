@@ -55,6 +55,11 @@ class Prefs(ctx: Context) {
         get() = sp.getInt("maxWallpaperChars", 320)
         set(v) = sp.edit().putInt("maxWallpaperChars", v.coerceIn(120, 600)).apply()
 
+    /** Show the "why it matters" line on the lock-screen card. */
+    var showContext: Boolean
+        get() = sp.getBoolean("showContext", true)
+        set(v) = sp.edit().putBoolean("showContext", v).apply()
+
     var unmeteredOnly: Boolean
         get() = sp.getBoolean("unmeteredOnly", true)
         set(v) = sp.edit().putBoolean("unmeteredOnly", v).apply()

@@ -56,7 +56,7 @@ object Rotator {
             val dm = ctx.resources.displayMetrics
             val w = maxOf(dm.widthPixels, 720)
             val h = maxOf(dm.heightPixels, 1280)
-            val bmp = QuoteCardRenderer.render(q, w, h, prefs.cardStyle, prefs.textScale)
+            val bmp = QuoteCardRenderer.render(q, w, h, prefs.cardStyle, prefs.textScale, showContext = prefs.showContext)
             var flags = WallpaperManager.FLAG_LOCK
             if (mode == "both") flags = flags or WallpaperManager.FLAG_SYSTEM
             wm.setBitmap(bmp, null, true, flags)

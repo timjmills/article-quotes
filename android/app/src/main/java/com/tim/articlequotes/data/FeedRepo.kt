@@ -87,8 +87,10 @@ class FeedRepo(ctx: Context, private val prefs: Prefs) {
                 val a = arr.getJSONObject(i)
                 val aid = a.getString("id")
                 val qs = a.optJSONArray("q") ?: continue
+                val xs = a.optJSONArray("x")
                 for (j in 0 until qs.length()) {
-                    out.add(Quote("$aid:$j", aid, qs.getString(j), a.optString("c"), a.optString("t"), a.optString("a"), a.optString("d")))
+                    val ctx = if (xs != null && j < xs.length()) xs.optString(j) else ""
+                    out.add(Quote("$aid:$j", aid, qs.getString(j), a.optString("c"), a.optString("t"), a.optString("a"), a.optString("d"), ctx))
                 }
             }
         }

@@ -263,9 +263,9 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
                 }
             }
         } else {
-            val style = prefs.cardStyle; val ts = prefs.textScale
-            val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, q.id, style, ts) {
-                value = withContext(Dispatchers.Default) { QuoteCardRenderer.preview(q, style, ts, 720).asImageBitmap() }
+            val style = prefs.cardStyle; val ts = prefs.textScale; val showCtx = prefs.showContext
+            val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, q.id, style, ts, showCtx) {
+                value = withContext(Dispatchers.Default) { QuoteCardRenderer.preview(q, style, ts, 720, showCtx).asImageBitmap() }
             }
             Box(
                 Modifier.fillMaxWidth().aspectRatio(1f / 1.6f)
@@ -273,6 +273,11 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
                     .clickable { onOpen(q.articleId) },
             ) {
                 bmp?.let { Image(it, contentDescription = "Current quote: ${q.text}", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+            }
+            if (q.context.isNotBlank()) {
+                Spacer(Modifier.height(12.dp))
+                Text("Why it matters", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(q.context, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 2.dp))
             }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -409,6 +414,7 @@ fun SavedScreen(prefs: Prefs, onOpen: (String) -> Unit) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp)) {
                     QuoteText(q.text)
+                    if (q.context.isNotBlank()) Text(q.context, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
                     Text("— ${q.author} · ${q.title}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
                     Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         TextButton(onClick = { onOpen(q.articleId) }) { Text("Read summary") }
@@ -483,11 +489,12 @@ fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) 
                 if (d.quotes.isNotEmpty()) {
                     SectionHeader("Notable quotes")
                     d.quotes.forEachIndexed { i, text ->
-                        val q = Quote("${d.id}:$i", d.id, text, d.category, d.title, d.author, d.date)
+                        val q = Quote("${d.id}:$i", d.id, text, d.category, d.title, d.author, d.date, d.contextFor(i))
                         val isFav = remember(favTick) { prefs.isFavorite(q.id) }
                         Card(Modifier.padding(vertical = 6.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                             Column(Modifier.padding(14.dp)) {
                                 Text("“$text”", fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic, style = MaterialTheme.typography.bodyLarge)
+                                if (q.context.isNotBlank()) Text(q.context, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
                                 Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                     TextButton(onClick = { scope.launch { Rotator.show(ctx, q, notify = false) } }) { Icon(Icons.Default.Lock, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Lock screen") }
                                     Spacer(Modifier.weight(1f))
@@ -542,6 +549,7 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
     var cats by remember { mutableStateOf(prefs.categories) }
     var scale by remember { mutableFloatStateOf(prefs.textScale) }
     var maxChars by remember { mutableIntStateOf(prefs.maxWallpaperChars) }
+    var showContext by remember { mutableStateOf(prefs.showContext) }
     var unmetered by remember { mutableStateOf(prefs.unmeteredOnly) }
     var feedUrl by remember { mutableStateOf(prefs.feedUrl) }
     var syncing by remember { mutableStateOf(false) }
@@ -584,6 +592,13 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
         ChipRow(listOf("off", "lock", "both"), wallpaper, label = { when (it) { "off" -> "Off"; "lock" -> "Lock screen"; else -> "Lock + home" } }) { wallpaper = it; prefs.wallpaperMode = it; reapplyWallpaper() }
         Text("Card style", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
         ChipRow(listOf("rotate", "navy", "paper", "forest", "plum"), style, label = { it.replaceFirstChar { c -> c.uppercase() } }) { style = it; prefs.cardStyle = it; reapplyWallpaper() }
+        Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Show \"why it matters\" on the card", style = MaterialTheme.typography.bodyLarge)
+                Text("One line of context from the article under each quote", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(showContext, { showContext = it; prefs.showContext = it; reapplyWallpaper() })
+        }
         Text("Longest quote on the lock screen: $maxChars characters", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
         Slider(maxChars.toFloat(), { maxChars = (it / 20).toInt() * 20 }, onValueChangeFinished = { prefs.maxWallpaperChars = maxChars }, valueRange = 120f..600f)
 

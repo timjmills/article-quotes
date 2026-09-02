@@ -14,6 +14,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      AQ_KEYSTORE_B64: ${{ secrets.AQ_KEYSTORE_B64 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,8 +32,6 @@ jobs:
 
       - name: Restore signing key (optional)
         if: ${{ env.AQ_KEYSTORE_B64 != '' }}
-        env:
-          AQ_KEYSTORE_B64: ${{ secrets.AQ_KEYSTORE_B64 }}
         run: |
           echo "$AQ_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
           echo "AQ_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"

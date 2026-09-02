@@ -37,7 +37,7 @@ object QuoteCardRenderer {
     fun paletteFor(style: String, q: Quote): Palette =
         palettes.firstOrNull { it.name == style } ?: palettes[abs(q.articleId.hashCode()) % palettes.size]
 
-    fun render(q: Quote, width: Int, height: Int, style: String, textScale: Float, preview: Boolean = false): Bitmap {
+    fun render(q: Quote, width: Int, height: Int, style: String, textScale: Float, preview: Boolean = false, showContext: Boolean = true): Bitmap {
         val w = max(width, 480); val h = max(height, 800)
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
@@ -68,9 +68,17 @@ object QuoteCardRenderer {
         }
         val minSize = 28f * scale
         val subSize = 30f * scale * textScale
-        val attributionBlock = subSize * 4.2f
         val markSize = 150f * scale
         val quoteText = "“${q.text}”"
+
+        // Optional "why it matters" line (max 3 lines) under the attribution.
+        val ctxPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = p.sub; typeface = sans; textSize = subSize * 0.82f }
+        val ctxLayout: StaticLayout? = if (showContext && q.context.isNotBlank()) {
+            StaticLayout.Builder.obtain(q.context, 0, q.context.length, ctxPaint, areaW)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0f, 1.15f)
+                .setMaxLines(3).setEllipsize(android.text.TextUtils.TruncateAt.END).setIncludePad(false).build()
+        } else null
+        val attributionBlock = subSize * 4.2f + (ctxLayout?.let { it.height + subSize * 0.6f } ?: 0f)
 
         var layout: StaticLayout
         val tp = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = p.text; typeface = serif }
@@ -109,6 +117,10 @@ object QuoteCardRenderer {
         y += subSize * 1.4f
         val cat = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = p.accent; typeface = sansBold; textSize = subSize * 0.7f; letterSpacing = 0.12f }
         c.drawText(Categories.short(q.category).uppercase(), left, y + subSize * 0.7f, cat)
+        if (ctxLayout != null) {
+            y += subSize * 1.3f
+            c.save(); c.translate(left, y); ctxLayout.draw(c); c.restore()
+        }
         return bmp
     }
 
@@ -120,8 +132,8 @@ object QuoteCardRenderer {
     }
 
     /** Small helper for the in-app preview: same card at a fraction of the size. */
-    fun preview(q: Quote, style: String, textScale: Float, width: Int): Bitmap =
-        render(q, width, (width * 1.6f).toInt(), style, textScale, preview = true)
+    fun preview(q: Quote, style: String, textScale: Float, width: Int, showContext: Boolean = true): Bitmap =
+        render(q, width, (width * 1.6f).toInt(), style, textScale, preview = true, showContext = showContext)
 
     fun contrastOn(color: Int): Int = if (Color.luminance(color) > 0.5) Color.BLACK else Color.WHITE
 
