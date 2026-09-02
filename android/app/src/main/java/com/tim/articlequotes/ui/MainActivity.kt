@@ -224,6 +224,9 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
     var status by remember { mutableStateOf("") }
     var onboarded by remember { mutableStateOf(prefs.onboarded) }
     var hasData by remember { mutableStateOf(repo.hasData()) }
+    // Position in the history of shown quotes; swiping moves through it.
+    var histIndex by remember { mutableIntStateOf(prefs.historyIndex) }
+    var histSize by remember { mutableIntStateOf(prefs.history.size) }
 
     LifecycleResumeEffect(Unit) {
         quote = prefs.currentQuote
@@ -233,9 +236,6 @@ fun TodayScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
         onPauseOrDispose { }
     }
 
-    // Position in the history of shown quotes; swiping moves through it.
-    var histIndex by remember { mutableIntStateOf(prefs.historyIndex) }
-    var histSize by remember { mutableIntStateOf(prefs.history.size) }
     var wallpaperJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
     fun applyWallpaperSoon(q: Quote) {
