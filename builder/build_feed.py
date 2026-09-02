@@ -92,6 +92,76 @@ OPEN_Q = "“\"‘"
 CLOSE_Q = "”\"’"
 
 
+# ----------------------------------------------------------------------------
+# Quote context ("why it matters")
+# ----------------------------------------------------------------------------
+# A quote on a lock screen is cryptic without its argument. For every quote we pick
+# the article's high-impact point (or summary sentence) that shares the most
+# content words with it, so the phone can show the quote *and* the claim it serves.
+
+STOPWORDS = set("""a an the and or but if of to in on for with as by at from is are was were be been
+being it its this that these those he she they them his her their we our you your i me my not no so
+than then too very can could will would should may might do does did have has had into over under
+about after before between out up down more most such only own same other some any each few all both
+just also what which who whom when where why how there here because while during through against
+one two three way even still much many made make makes get gets got like well back off per via""".split())
+
+
+def _words(s: str) -> list[str]:
+    return [w for w in re.findall(r"[a-z][a-z'\-]{2,}", s.lower()) if w not in STOPWORDS]
+
+
+def _stem(w: str) -> str:
+    for suf in ("ings", "ing", "ers", "er", "ed", "es", "ly", "s"):
+        if len(w) > len(suf) + 3 and w.endswith(suf):
+            return w[: -len(suf)]
+    return w
+
+
+def _sentences(text: str) -> list[str]:
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z“\"(])", text or "") if len(s.strip()) > 40]
+
+
+def _trim(t: str, n: int) -> str:
+    t = clean_ws(t)
+    if len(t) <= n:
+        return t
+    cut = t[:n].rsplit(" ", 1)[0]
+    return cut.rstrip(",;:—-") + "…"
+
+
+def _norm(s: str) -> str:
+    return clean_ws(s).lower().replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
+
+
+def quote_context(quote: str, bullets: list[str], summary: str, max_len: int = 220) -> str:
+    qw = {_stem(w) for w in _words(quote)}
+    nq = _norm(quote)
+    candidates = [(b, 1.15) for b in bullets] + [(s, 1.0) for s in _sentences(summary)]
+    best, best_score = None, 0.0
+    for text, boost in candidates:
+        tw = {_stem(w) for w in _words(text)}
+        if not tw:
+            continue
+        shared = qw & tw
+        # Skip candidates that merely restate the quote (either one contained in the other).
+        if qw and (len(shared) >= 0.6 * len(qw) or len(shared) >= 0.85 * len(tw)):
+            continue
+        nt = _norm(text)
+        if nt in nq or nq in nt:
+            continue
+        # Context should be a claim, not a fragment or a rhetorical question.
+        if len(nt) < 50 or nt.rstrip('"').endswith("?"):
+            boost *= 0.4
+        score = len(shared) / (len(tw) ** 0.5) * boost
+        if score > best_score:
+            best, best_score = text, score
+    if best is None or best_score < 0.55:
+        sents = _sentences(summary)
+        best = sents[0] if sents else ""
+    return _trim(best, max_len)
+
+
 def canonical_section(name: str) -> str:
     n = name.lower()
     if n.startswith("summary"):
@@ -293,12 +363,15 @@ def build_feed(articles: list[dict], feed_dir: Path, cfg: dict) -> dict:
     art_dir = feed_dir / "articles"
     art_dir.mkdir(parents=True, exist_ok=True)
     keep = set()
+    contexts: dict[str, list[str]] = {}
     for a in feed_articles:
         keep.add(f"{a['id']}.json")
+        ctx = [quote_context(q, a["bullets"], a["summary"]) for q in a["quotes"]]
+        contexts[a["id"]] = ctx
         write_json(art_dir / f"{a['id']}.json", {
             "id": a["id"], "category": a["category"], "title": a["title"], "author": a["author"],
             "source": a["source"], "date": a["date"], "dateDisplay": a["date_display"], "url": a["url"],
-            "summary": a["summary"], "points": a["bullets"], "quotes": a["quotes"],
+            "summary": a["summary"], "points": a["bullets"], "quotes": a["quotes"], "context": ctx,
         })
     for stale in art_dir.glob("*.json"):
         if stale.name not in keep:
@@ -310,7 +383,7 @@ def build_feed(articles: list[dict], feed_dir: Path, cfg: dict) -> dict:
         ym = a["date"][:7]
         shards.setdefault(ym, []).append({
             "id": a["id"], "c": a["category"], "t": a["title"], "a": a["author"], "d": a["date"],
-            "q": a["quotes"],
+            "q": a["quotes"], "x": contexts[a["id"]],
         })
     q_dir = feed_dir / "quotes"
     q_dir.mkdir(parents=True, exist_ok=True)
