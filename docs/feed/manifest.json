@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "generated": "2026-09-12T19:00:13+00:00",
-  "articleCount": 5114,
-  "quoteCount": 29596,
+  "generated": "2026-09-16T15:15:03+00:00",
+  "articleCount": 5190,
+  "quoteCount": 30002,
   "categories": {
-    "Education - Practice & Culture": 1583,
-    "Education - Learning & Curriculum": 1197,
-    "Family": 240,
-    "Classical Education": 62,
-    "Leadership": 1677,
-    "Education - Ed-Tech": 355
+    "Education - Practice & Culture": 1594,
+    "Family": 250,
+    "Leadership": 1704,
+    "Education - Learning & Curriculum": 1215,
+    "Education - Ed-Tech": 363,
+    "Classical Education": 64
   },
   "shards": [
     {
@@ -1471,9 +1471,9 @@
     {
       "name": "2026-09",
       "path": "quotes/2026-09.json",
-      "sha": "cc23f17fb44a648c",
-      "articles": 271,
-      "quotes": 1687
+      "sha": "a91c4da70fb59ac0",
+      "articles": 347,
+      "quotes": 2093
     }
   ]
 }
