@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "generated": "2026-10-04T19:02:03+00:00",
-  "articleCount": 6237,
-  "quoteCount": 37193,
+  "generated": "2026-10-05T07:02:00+00:00",
+  "articleCount": 6256,
+  "quoteCount": 37300,
   "categories": {
-    "Leadership": 2089,
-    "Education - Learning & Curriculum": 1431,
-    "Education - Practice & Culture": 1862,
+    "Leadership": 2100,
+    "Education - Learning & Curriculum": 1435,
+    "Education - Practice & Culture": 1866,
     "Education - Ed-Tech": 437,
     "Classical Education": 99,
     "Family": 319
@@ -666,9 +666,9 @@
     {
       "name": "2017-02",
       "path": "quotes/2017-02.json",
-      "sha": "08828fe2f73100c3",
-      "articles": 4,
-      "quotes": 26
+      "sha": "a104013321671dc8",
+      "articles": 9,
+      "quotes": 58
     },
     {
       "name": "2017-03",
@@ -708,9 +708,9 @@
     {
       "name": "2017-08",
       "path": "quotes/2017-08.json",
-      "sha": "6eb28c6de6d8011b",
-      "articles": 5,
-      "quotes": 30
+      "sha": "0028c48c518bdf22",
+      "articles": 7,
+      "quotes": 42
     },
     {
       "name": "2017-09",
@@ -743,9 +743,9 @@
     {
       "name": "2018-01",
       "path": "quotes/2018-01.json",
-      "sha": "ca4c3d0b554efd76",
-      "articles": 4,
-      "quotes": 24
+      "sha": "330ccc9a6266511d",
+      "articles": 5,
+      "quotes": 30
     },
     {
       "name": "2018-02",
@@ -1198,16 +1198,16 @@
     {
       "name": "2023-06",
       "path": "quotes/2023-06.json",
-      "sha": "cf05ef490c6db28a",
-      "articles": 49,
-      "quotes": 263
+      "sha": "8b288e63429cf0cb",
+      "articles": 52,
+      "quotes": 278
     },
     {
       "name": "2023-07",
       "path": "quotes/2023-07.json",
-      "sha": "94f05ba7bc1fe3cd",
-      "articles": 30,
-      "quotes": 173
+      "sha": "29baa4e26e2cc0e2",
+      "articles": 38,
+      "quotes": 215
     },
     {
       "name": "2023-08",
