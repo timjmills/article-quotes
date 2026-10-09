@@ -44,6 +44,12 @@ jobs:
           AQ_KEY_PASSWORD: ${{ secrets.AQ_KEY_PASSWORD }}
         run: gradle --no-daemon assembleRelease
 
+      - name: Read version
+        id: ver
+        run: |
+          echo "code=$(grep -oP 'versionCode = \K[0-9]+' android/app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+          echo "name=$(grep -oP 'versionName = "\K[^"]+' android/app/build.gradle.kts)" >> "$GITHUB_OUTPUT"
+
       - name: Rename APK
         run: cp android/app/build/outputs/apk/release/app-release.apk ArticleQuotes.apk
 
@@ -56,6 +62,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Article Quotes (latest build)
+          name: Article Quotes ${{ steps.ver.outputs.name }} (build ${{ steps.ver.outputs.code }})
           body: "Install this APK on your phone. Each push to main replaces it."
           files: ArticleQuotes.apk

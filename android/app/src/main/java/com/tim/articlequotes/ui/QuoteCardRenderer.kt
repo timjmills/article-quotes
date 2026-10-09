@@ -37,7 +37,7 @@ object QuoteCardRenderer {
     fun paletteFor(style: String, q: Quote): Palette =
         palettes.firstOrNull { it.name == style } ?: palettes[abs(q.articleId.hashCode()) % palettes.size]
 
-    fun render(q: Quote, width: Int, height: Int, style: String, textScale: Float, preview: Boolean = false, showContext: Boolean = true): Bitmap {
+    fun render(q: Quote, width: Int, height: Int, style: String, textScale: Float, preview: Boolean = false, showContext: Boolean = true, position: String = "middle"): Bitmap {
         val w = max(width, 480); val h = max(height, 800)
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
@@ -49,8 +49,10 @@ object QuoteCardRenderer {
         // Safe area: previews use the whole card; real wallpapers dodge the clock and shortcuts.
         val left = w * 0.09f
         val areaW = (w * 0.82f).toInt()
-        val areaTop = if (preview) h * 0.12f else h * 0.30f
-        val areaBottom = if (preview) h * 0.90f else h * 0.83f
+        val lower = !preview && position == "lower"
+        // "lower" sits in the bottom third, below even a large centred clock, above the unlock hint.
+        val areaTop = when { preview -> h * 0.12f; lower -> h * 0.665f; else -> h * 0.30f }
+        val areaBottom = when { preview -> h * 0.90f; lower -> h * 0.845f; else -> h * 0.83f }
         val areaH = areaBottom - areaTop
 
         val serif = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
@@ -73,10 +75,10 @@ object QuoteCardRenderer {
 
         // Optional "why it matters" line (max 3 lines) under the attribution.
         val ctxPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = p.sub; typeface = sans; textSize = subSize * 0.82f }
-        val ctxLayout: StaticLayout? = if (showContext && q.context.isNotBlank()) {
+        val ctxLayout: StaticLayout? = if (showContext && !lower && q.context.isNotBlank()) {
             StaticLayout.Builder.obtain(q.context, 0, q.context.length, ctxPaint, areaW)
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0f, 1.15f)
-                .setMaxLines(3).setEllipsize(android.text.TextUtils.TruncateAt.END).setIncludePad(false).build()
+                .setMaxLines(4).setEllipsize(android.text.TextUtils.TruncateAt.END).setIncludePad(false).build()
         } else null
         val attributionBlock = subSize * 4.2f + (ctxLayout?.let { it.height + subSize * 0.6f } ?: 0f)
 

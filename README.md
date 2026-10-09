@@ -36,6 +36,21 @@ Samsung note: the app sets the lock-screen wallpaper directly. If you use Samsun
 
 Everything above is changeable in **Settings** inside the app.
 
+## What's in 1.3
+
+- **Grace window:** a scheduled quote never changes while the screen is on, or within 30 seconds (adjustable) of it turning off. Survives Android killing the app in the background.
+- **Learns your taste:** more/less like this, mute an author, Less/Normal/More per article type, and time-of-day themes (work topics mornings, family evenings).
+- **In-app updates:** checks the GitHub release daily; downloads and installs a newer build in place. The release title must contain `(build N)` matching `versionCode`, which the CI workflow sets.
+- **Reading loop:** read later, read marks, weekly Sunday review of saved quotes, search inside quote text, export saved quotes (share to Drive).
+- **Share as image:** a 4:5 card picture of any quote.
+- **Staleness warnings:** banner and notification when the phone hasn't refreshed for 3 days or no new article has arrived for 5.
+- **Lock-screen position:** Middle (default) or Lower, for phones whose clock covers the middle.
+- **Tablets:** navigation rail and a centred reading column at 600dp and wider.
+
+## "Why it matters" lines
+
+The builder picks, for each quote, the high-impact point or summary sentence that best matches it, as a complete sentence. If the archive folder contains `QUOTE_CONTEXT.jsonl` (one `{"file": "<pdf name>", "context": [...]}` per line, written by the archive task per its PROJECT_INSTRUCTIONS.md), those Claude-written lines are used instead.
+
 ## Updating the app
 
 Push a change under `android/` and the GitHub Actions workflow in `.github/workflows/android.yml` builds a new APK and attaches it to the `latest` release. Building locally instead:

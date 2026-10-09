@@ -17,6 +17,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.ui.draw.rotate
+import com.tim.articlequotes.data.Staleness
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.tim.articlequotes.update.Updater
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -125,19 +143,30 @@ import java.util.Date
 class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_ARTICLE = "articleId"
+        const val EXTRA_TAB = "tab"
+        const val TAB_TODAY = 0
+        const val TAB_BROWSE = 1
+        const val TAB_SAVED = 2
+        const val TAB_SETTINGS = 3
         val pendingArticle = mutableStateOf<String?>(null)
+        val pendingTab = mutableStateOf<Int?>(null)
+    }
+
+    private fun read(i: Intent?) {
+        pendingArticle.value = i?.getStringExtra(EXTRA_ARTICLE)
+        pendingTab.value = i?.takeIf { it.hasExtra(EXTRA_TAB) }?.getIntExtra(EXTRA_TAB, 0)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        pendingArticle.value = intent?.getStringExtra(EXTRA_ARTICLE)
+        read(intent)
         setContent { AppRoot() }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        pendingArticle.value = intent.getStringExtra(EXTRA_ARTICLE)
+        read(intent)
     }
 }
 
@@ -172,6 +201,15 @@ private fun scaledTypography(s: Float): Typography {
 // Root
 // ---------------------------------------------------------------------------
 
+private data class NavDest(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+
+private val DESTS = listOf(
+    NavDest("Today", Icons.Default.Home),
+    NavDest("Browse", Icons.Default.List),
+    NavDest("Saved", Icons.Default.Favorite),
+    NavDest("Settings", Icons.Default.Settings),
+)
+
 @Composable
 fun AppRoot() {
     val ctx = LocalContext.current
@@ -187,6 +225,14 @@ fun AppRoot() {
     val pending = MainActivity.pendingArticle.value
     LaunchedEffect(pending) {
         if (pending != null) { openArticle = pending; MainActivity.pendingArticle.value = null }
+    }
+    val pendingTab = MainActivity.pendingTab.value
+    LaunchedEffect(pendingTab) {
+        if (pendingTab != null) { tab = pendingTab; openArticle = null; fullscreen = false; MainActivity.pendingTab.value = null }
+    }
+    // Check for a newer app build at most once a day while the app is open.
+    LaunchedEffect(Unit) {
+        if (System.currentTimeMillis() - prefs.lastUpdateCheck > 20L * 3600 * 1000) Updater.check(ctx.applicationContext)
     }
 
     MaterialTheme(colorScheme = Scheme, typography = remember(textScale) { scaledTypography(textScale) }) {
@@ -206,24 +252,42 @@ fun AppRoot() {
                         onClose = { fullscreen = false },
                     )
                 }
-                else -> Scaffold(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    bottomBar = {
-                        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                            NavigationBarItem(tab == 0, { tab = 0 }, { Icon(Icons.Default.Home, null) }, label = { Text("Today") })
-                            NavigationBarItem(tab == 1, { tab = 1 }, { Icon(Icons.Default.List, null) }, label = { Text("Browse") })
-                            NavigationBarItem(tab == 2, { tab = 2 }, { Icon(Icons.Default.Favorite, null) }, label = { Text("Saved") })
-                            NavigationBarItem(tab == 3, { tab = 3 }, { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
+                else -> BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val wide = maxWidth >= 600.dp
+                    val content: @Composable () -> Unit = {
+                        // On wide screens keep reading width comfortable instead of stretching the phone layout.
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                            Box(Modifier.widthIn(max = 720.dp).fillMaxSize()) {
+                                when (tab) {
+                                    0 -> TodayScreen(nav, prefs, repo, onOpen = { openArticle = it }, onFullscreen = { fullscreen = true })
+                                    1 -> BrowseScreen(prefs, repo, onOpen = { openArticle = it })
+                                    2 -> SavedScreen(prefs, onOpen = { openArticle = it })
+                                    else -> SettingsScreen(prefs, repo, onTextScale = { textScale = it })
+                                }
+                            }
                         }
-                    },
-                ) { pad ->
-                    Box(Modifier.padding(pad).fillMaxSize()) {
-                        when (tab) {
-                            0 -> TodayScreen(nav, prefs, repo, onOpen = { openArticle = it }, onFullscreen = { fullscreen = true })
-                            1 -> BrowseScreen(prefs, repo, onOpen = { openArticle = it })
-                            2 -> SavedScreen(prefs, onOpen = { openArticle = it })
-                            else -> SettingsScreen(prefs, repo, onTextScale = { textScale = it })
+                    }
+                    if (wide) {
+                        Row(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
+                            NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+                                Spacer(Modifier.height(12.dp))
+                                DESTS.forEachIndexed { i, d ->
+                                    NavigationRailItem(tab == i, { tab = i }, { Icon(d.icon, null) }, label = { Text(d.label) })
+                                }
+                            }
+                            content()
                         }
+                    } else {
+                        Scaffold(
+                            containerColor = MaterialTheme.colorScheme.background,
+                            bottomBar = {
+                                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                                    DESTS.forEachIndexed { i, d ->
+                                        NavigationBarItem(tab == i, { tab = i }, { Icon(d.icon, null) }, label = { Text(d.label) })
+                                    }
+                                }
+                            },
+                        ) { pad -> Box(Modifier.padding(pad).fillMaxSize()) { content() } }
                     }
                 }
             }
@@ -237,17 +301,27 @@ fun AppRoot() {
 
 @Composable
 fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit, onFullscreen: () -> Unit) {
-    val ctx = LocalContext.current
     var onboarded by remember { mutableStateOf(prefs.onboarded) }
-    LifecycleResumeEffect(Unit) { nav.refresh(); onPauseOrDispose { } }
+    var tick by remember { mutableIntStateOf(0) }
+    LifecycleResumeEffect(Unit) { nav.refresh(); tick++; onPauseOrDispose { } }
+    val stale by produceState<Staleness?>(null, tick, nav.hasData) {
+        value = if (nav.hasData) withContext(Dispatchers.IO) { Staleness.of(repo, prefs) } else null
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)) {
         Text("Article Quotes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         Text(
-            if (nav.hasData) prefs.lastSyncMessage.ifBlank { "Quotes from your article archive" } else "Quotes from your article archive",
+            stale?.summary ?: "Quotes from your article archive",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
+
+        UpdateCard(prefs, compact = true)
+        val st = stale
+        if (st != null && st.warn) {
+            StaleBanner(st.message, repo, onSynced = { nav.refresh(); tick++ })
+            Spacer(Modifier.height(12.dp))
+        }
 
         if (!onboarded) {
             OnboardingCard(prefs, repo, onDone = { onboarded = true; nav.newQuote() })
@@ -255,7 +329,9 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
         }
 
         val q = nav.quote
-        if (q == null) {
+        if (q == null && !onboarded) {
+            // The welcome card already has the download button.
+        } else if (q == null) {
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(20.dp)) {
                     Text(if (nav.hasData) "Ready for your first quote." else "Download your quotes to get started.", style = MaterialTheme.typography.titleMedium)
@@ -272,8 +348,10 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
                 value = withContext(Dispatchers.Default) { QuoteCardRenderer.preview(q, style, ts, 720, showCtx).asImageBitmap() }
             }
             val swipeThreshold = with(LocalDensity.current) { 72.dp.toPx() }
+            val maxCard = (LocalConfiguration.current.screenHeightDp * 0.48f).dp
             Box(
-                Modifier.fillMaxWidth().aspectRatio(1f / 1.6f)
+                Modifier.fillMaxWidth().heightIn(max = maxCard).aspectRatio(1f / 1.6f, matchHeightConstraintsFirst = true)
+                    .align(Alignment.CenterHorizontally)
                     .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
                     .clickable { onFullscreen() }
                     .quoteSwipe(nav, swipeThreshold),
@@ -290,22 +368,24 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
                 IconButton(onClick = { nav.next() }, enabled = !nav.busy) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, if (nav.hasNext) "Next quote" else "New quote") }
             }
             if (q.context.isNotBlank()) {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
                 Text("Why it matters", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Text(q.context, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 2.dp))
             }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = { nav.newQuote() }, enabled = !nav.busy) {
-                    if (nav.busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("New quote") }
-                }
-                Spacer(Modifier.width(8.dp))
-                OutlinedButton(onClick = { onOpen(q.articleId) }) { Text("Read summary") }
+                Button(onClick = { onOpen(q.articleId) }) { Text("Read summary") }
                 Spacer(Modifier.weight(1f))
+                IconButton(onClick = { nav.lessLikeThis() }) { Icon(Icons.Default.ThumbUp, "Less like this", Modifier.rotate(180f)) }
+                IconButton(onClick = { nav.moreLikeThis() }) { Icon(Icons.Default.ThumbUp, "More like this") }
                 IconButton(onClick = { nav.toggleFavorite() }) {
-                    Icon(if (nav.fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Save", tint = MaterialTheme.colorScheme.primary)
+                    Icon(if (nav.fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (nav.fav) "Saved, tap to remove" else "Save", tint = MaterialTheme.colorScheme.primary)
                 }
-                IconButton(onClick = { share(ctx, q) }) { Icon(Icons.Default.Share, "Share") }
+                IconButton(onClick = { nav.shareImage() }) { Icon(Icons.Default.Share, "Share as image") }
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(onClick = { nav.newQuote() }, enabled = !nav.busy) {
+                if (nav.busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else { Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(6.dp)); Text("New quote") }
             }
             Spacer(Modifier.height(8.dp))
             val mode = prefs.wallpaperMode
@@ -314,12 +394,88 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
                     append("A new quote every ${intervalLabel(prefs.intervalMinutes).lowercase()}")
                     if (prefs.quietEnabled) append(", quiet ${prefs.quietStartHour}:00\u2013${prefs.quietEndHour}:00")
                     append(". Lock screen: ${if (mode == "off") "off" else "on"}.")
+                    if (prefs.graceSeconds > 0) append(" A quote stays at least ${graceLabel(prefs.graceSeconds)} after the screen turns off.")
                 },
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (nav.status.isNotBlank()) Text(nav.status, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
         }
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun StaleBanner(message: String, repo: FeedRepo, onSynced: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(8.dp))
+                Text("No new articles lately", style = MaterialTheme.typography.titleSmall)
+            }
+            Text(message, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp))
+            TextButton(onClick = { busy = true; scope.launch { repo.sync(); busy = false; onSynced() } }, enabled = !busy) {
+                Text(if (busy) "Checking\u2026" else "Check again")
+            }
+        }
+    }
+}
+
+/** Shows when a newer build is on GitHub; downloads it and opens Android's installer. */
+@Composable
+fun UpdateCard(prefs: Prefs, compact: Boolean) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var update by remember { mutableStateOf(Updater.pending(prefs)) }
+    var progress by remember { mutableStateOf<Float?>(null) }
+    var msg by remember { mutableStateOf("") }
+    var checking by remember { mutableStateOf(false) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LifecycleResumeEffect(Unit) { update = Updater.pending(prefs); onPauseOrDispose { } }
+
+    val u = update
+    if (u == null) {
+        if (!compact) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = {
+                    checking = true; msg = ""
+                    scope.launch {
+                        update = Updater.check(ctx.applicationContext)
+                        if (update == null) msg = "You have the latest version."
+                        checking = false
+                    }
+                }, enabled = !checking) { Text(if (checking) "Checking\u2026" else "Check for app update") }
+                Spacer(Modifier.width(12.dp))
+                Text(msg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        return
+    }
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer), modifier = Modifier.padding(bottom = 12.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Version ${u.versionName} is ready", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            Text("It installs over this one and keeps your settings and saved quotes.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            val pr = progress
+            if (pr != null) LinearProgressIndicator(progress = { pr }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+            Button(onClick = {
+                if (!Updater.canInstall(ctx)) {
+                    msg = "Allow \"Install unknown apps\" for Article Quotes, come back, and tap Update again."
+                    Updater.openInstallPermission(ctx)
+                    return@Button
+                }
+                progress = 0f; msg = ""
+                scope.launch {
+                    val f = Updater.download(ctx.applicationContext, u) { p -> progress = p }
+                    progress = null
+                    val inFront = lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+                    if (f == null) msg = "The download failed or was incomplete. Check your connection and try again."
+                    else Updater.install(ctx, f, inFront)
+                }
+            }, enabled = progress == null, modifier = Modifier.padding(top = 8.dp)) { Text(if (progress == null) "Update now" else "Downloading\u2026") }
+            if (msg.isNotBlank()) Text(msg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(top = 6.dp))
+        }
     }
 }
 
@@ -369,8 +525,11 @@ fun FullScreenQuote(
         if (controls) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close full screen", tint = Color.White) }
+                if (nav.histSize > 0) Text("${nav.histIndex + 1} of ${nav.histSize}", color = Color(0xCCFFFFFF), style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.weight(1f))
-                if (nav.histSize > 0) Text("${nav.histIndex + 1} of ${nav.histSize}", color = Color(0xCCFFFFFF), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(end = 12.dp))
+                if (nav.toast.isNotBlank()) Text(nav.toast, color = Color(0xCCFFFFFF), style = MaterialTheme.typography.labelMedium)
+                IconButton(onClick = { nav.lessLikeThis() }) { Icon(Icons.Default.ThumbUp, "Less like this", Modifier.rotate(180f), tint = Color.White) }
+                IconButton(onClick = { nav.moreLikeThis() }) { Icon(Icons.Default.ThumbUp, "More like this", tint = Color.White) }
             }
             Row(
                 Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(12.dp)
@@ -380,9 +539,9 @@ fun FullScreenQuote(
                 IconButton(onClick = { nav.previous() }, enabled = nav.hasPrevious) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous quote", tint = if (nav.hasPrevious) Color.White else Color(0x66FFFFFF)) }
                 TextButton(onClick = { setScale(textScale - 0.1f) }, enabled = textScale > 0.81f) { Text("A\u2212", color = Color.White, fontSize = 16.sp) }
                 TextButton(onClick = { setScale(textScale + 0.1f) }, enabled = textScale < 2.19f) { Text("A+", color = Color.White, fontSize = 22.sp) }
-                IconButton(onClick = { nav.toggleFavorite() }) { Icon(if (nav.fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Save", tint = Color(0xFFE0B04A)) }
-                IconButton(onClick = { q?.let { share(ctx, it) } }) { Icon(Icons.Default.Share, "Share", tint = Color.White) }
-                TextButton(onClick = { q?.let { onOpen(it.articleId) } }) { Text("Summary", color = Color.White) }
+                IconButton(onClick = { nav.toggleFavorite() }) { Icon(if (nav.fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (nav.fav) "Saved, tap to remove" else "Save", tint = Color(0xFFE0B04A)) }
+                IconButton(onClick = { nav.shareImage() }) { Icon(Icons.Default.Share, "Share as image", tint = Color.White) }
+                IconButton(onClick = { q?.let { onOpen(it.articleId) } }) { Icon(Icons.Default.Info, "Read summary", tint = Color.White) }
                 IconButton(onClick = { nav.next() }, enabled = !nav.busy) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, if (nav.hasNext) "Next quote" else "New quote", tint = Color.White) }
             }
         }
@@ -443,33 +602,48 @@ private fun OnboardingCard(prefs: Prefs, repo: FeedRepo, onDone: () -> Unit) {
 fun BrowseScreen(prefs: Prefs, repo: FeedRepo, onOpen: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var selected by remember { mutableStateOf(prefs.categories) }
+    var read by remember { mutableStateOf(prefs.readArticles) }
+    LifecycleResumeEffect(Unit) { read = prefs.readArticles; onPauseOrDispose { } }
     val all = remember(selected) { repo.articles(selected) }
+    val quotesByArticle = remember { repo.allQuotes().groupBy { it.articleId } }
+    // Matches on title or author, or inside any quote (then the matching quote is shown).
     val list = remember(all, query) {
         val q = query.trim().lowercase()
-        if (q.isBlank()) all else all.filter { it.title.lowercase().contains(q) || it.author.lowercase().contains(q) }
+        if (q.length < 2) all.map { it to null } else all.mapNotNull { a ->
+            when {
+                a.title.lowercase().contains(q) || a.author.lowercase().contains(q) -> a to null
+                else -> quotesByArticle[a.id]?.firstOrNull { it.text.lowercase().contains(q) }?.let { a to it.text }
+            }
+        }
     }
     Column(Modifier.fillMaxSize()) {
         OutlinedTextField(
             query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            placeholder = { Text("Search titles and authors") }, singleLine = true,
+            placeholder = { Text("Search titles, authors and quotes") }, singleLine = true,
+            leadingIcon = { Icon(Icons.Default.Search, null) },
         )
         LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(Categories.ALL) { c ->
                 FilterChip(selected = c in selected, onClick = { selected = if (c in selected) selected - c else selected + c }, label = { Text(Categories.short(c)) })
             }
         }
-        Text("${list.size} articles", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp, 8.dp))
+        Text("${list.size} article${if (list.size == 1) "" else "s"}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp, 8.dp))
         LazyColumn(Modifier.fillMaxSize()) {
-            items(list, key = { it.id }) { a -> ArticleRow(a) { onOpen(a.id) } }
+            items(list, key = { it.first.id }) { (a, snippet) -> ArticleRow(a, a.id in read, snippet) { onOpen(a.id) } }
         }
     }
 }
 
 @Composable
-private fun ArticleRow(a: ArticleSummary, onClick: () -> Unit) {
+private fun ArticleRow(a: ArticleSummary, isRead: Boolean, snippet: String?, onClick: () -> Unit) {
     Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 10.dp)) {
-        Text(a.title, style = MaterialTheme.typography.titleMedium, maxLines = 2)
-        Text("${a.author} · ${a.date} · ${Categories.short(a.category)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(a.title, style = MaterialTheme.typography.titleMedium, maxLines = 2,
+            color = if (isRead) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (isRead) { Icon(Icons.Default.Check, "Read", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(4.dp)) }
+            Text("${a.author} \u00b7 ${a.date} \u00b7 ${Categories.short(a.category)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (snippet != null) Text("\u201C$snippet\u201D", style = MaterialTheme.typography.bodySmall, fontStyle = FontStyle.Italic, maxLines = 3, modifier = Modifier.padding(top = 4.dp))
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 }
@@ -482,28 +656,80 @@ private fun ArticleRow(a: ArticleSummary, onClick: () -> Unit) {
 fun SavedScreen(prefs: Prefs, onOpen: (String) -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    var section by rememberSaveable { mutableIntStateOf(0) }
     var favs by remember { mutableStateOf(prefs.favorites) }
-    LifecycleResumeEffect(Unit) { favs = prefs.favorites; onPauseOrDispose { } }
-    if (favs.isEmpty()) {
-        Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-            Text("Nothing saved yet. Tap the heart on a quote to keep it here.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    var later by remember { mutableStateOf(prefs.readLater) }
+    LifecycleResumeEffect(Unit) { favs = prefs.favorites; later = prefs.readLater; onPauseOrDispose { } }
+    val savedAt = remember(favs) { prefs.favoriteSavedAt }
+    val weekAgo = System.currentTimeMillis() - 7L * 24 * 3600 * 1000
+    val thisWeek = favs.filter { (savedAt[it.id] ?: 0L) >= weekAgo }
+    val earlier = favs.filter { (savedAt[it.id] ?: 0L) < weekAgo }
+
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            FilterChip(section == 0, { section = 0 }, label = { Text("Quotes (${favs.size})") })
+            Spacer(Modifier.width(8.dp))
+            FilterChip(section == 1, { section = 1 }, label = { Text("Read later (${later.size})") })
+            Spacer(Modifier.weight(1f))
+            if (section == 0 && favs.isNotEmpty()) TextButton(onClick = { scope.launch { Sharing.exportSaved(ctx, prefs) } }) { Text("Export") }
         }
-        return
-    }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        items(favs, key = { it.id }) { q ->
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.padding(16.dp)) {
-                    QuoteText(q.text)
-                    if (q.context.isNotBlank()) Text(q.context, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
-                    Text("— ${q.author} · ${q.title}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
-                    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { onOpen(q.articleId) }) { Text("Read summary") }
-                        TextButton(onClick = { scope.launch { Rotator.show(ctx, q, notify = false) } }) { Icon(Icons.Default.Lock, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Lock screen") }
-                        Spacer(Modifier.weight(1f))
-                        IconButton(onClick = { prefs.toggleFavorite(q); favs = prefs.favorites }) { Icon(Icons.Default.Favorite, "Remove", tint = MaterialTheme.colorScheme.primary) }
+        if (section == 0) {
+            if (favs.isEmpty()) {
+                EmptyNote("Nothing saved yet. Tap the heart on a quote to keep it here.")
+                return@Column
+            }
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (thisWeek.isNotEmpty()) item { Text("This week", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary) }
+                items(thisWeek, key = { "w" + it.id }) { q -> SavedQuoteCard(q, prefs, onOpen) { favs = prefs.favorites } }
+                if (earlier.isNotEmpty() && thisWeek.isNotEmpty()) item { Text("Earlier", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary) }
+                items(earlier, key = { "e" + it.id }) { q -> SavedQuoteCard(q, prefs, onOpen) { favs = prefs.favorites } }
+            }
+        } else {
+            if (later.isEmpty()) {
+                EmptyNote("No articles saved for later. Open a summary and tap Read later.")
+                return@Column
+            }
+            LazyColumn(Modifier.fillMaxSize()) {
+                items(later, key = { it.optString("id") }) { o ->
+                    Row(Modifier.fillMaxWidth().clickable { onOpen(o.optString("id")) }.padding(start = 16.dp, top = 10.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(o.optString("title"), style = MaterialTheme.typography.titleMedium, maxLines = 2)
+                            Text("${o.optString("author")} \u00b7 ${Categories.short(o.optString("category"))}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = {
+                            val list = prefs.readLater.filter { it.optString("id") != o.optString("id") }
+                            prefs.setReadLater(list); later = prefs.readLater
+                        }) { Icon(Icons.Default.Close, "Remove from read later") }
                     }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyNote(text: String) {
+    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
+        Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun SavedQuoteCard(q: Quote, prefs: Prefs, onOpen: (String) -> Unit, onChanged: () -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.padding(16.dp)) {
+            QuoteText(q.text)
+            if (q.context.isNotBlank()) Text(q.context, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+            Text("\u2014 ${q.author} \u00b7 ${q.title}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { onOpen(q.articleId) }) { Text("Summary") }
+                TextButton(onClick = { scope.launch { Rotator.show(ctx, q, notify = false) } }) { Icon(Icons.Default.Lock, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Lock screen") }
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { scope.launch { Sharing.shareQuoteImage(ctx, q, prefs) } }) { Icon(Icons.Default.Share, "Share as image") }
+                IconButton(onClick = { prefs.toggleFavorite(q); onChanged() }) { Icon(Icons.Default.Favorite, "Remove", tint = MaterialTheme.colorScheme.primary) }
             }
         }
     }
@@ -532,13 +758,26 @@ fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) 
     var detail by remember { mutableStateOf<ArticleDetail?>(null) }
     var loading by remember { mutableStateOf(true) }
     var favTick by remember { mutableIntStateOf(0) }
-    LaunchedEffect(id) { loading = true; detail = repo.article(id); loading = false }
+    var later by remember { mutableStateOf(prefs.isReadLater(id)) }
+    var muted by remember { mutableStateOf(false) }
+    var feedback by remember { mutableStateOf("") }
+    LaunchedEffect(id) {
+        loading = true; detail = repo.article(id); loading = false
+        prefs.markRead(id)
+        detail?.let { muted = it.author in prefs.mutedAuthors }
+    }
 
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
             Text(detail?.let { Categories.short(it.category) } ?: "", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-            detail?.let { d -> IconButton(onClick = { shareArticle(ctx, d) }) { Icon(Icons.Default.Share, "Share") } }
+            detail?.let { d ->
+                TextButton(onClick = { later = prefs.toggleReadLater(d) }) {
+                    Icon(if (later) Icons.Default.Check else Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp))
+                    Text(if (later) "In read later" else "Read later")
+                }
+                IconButton(onClick = { shareArticle(ctx, d) }) { Icon(Icons.Default.Share, "Share summary") }
+            }
         }
         val d = detail
         if (loading) {
@@ -580,9 +819,9 @@ fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) 
                                     TextButton(onClick = { scope.launch { Rotator.show(ctx, q, notify = false) } }) { Icon(Icons.Default.Lock, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Lock screen") }
                                     Spacer(Modifier.weight(1f))
                                     IconButton(onClick = { prefs.toggleFavorite(q); favTick++ }) {
-                                        Icon(if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Save", tint = MaterialTheme.colorScheme.primary)
+                                        Icon(if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (isFav) "Saved, tap to remove" else "Save", tint = MaterialTheme.colorScheme.primary)
                                     }
-                                    IconButton(onClick = { share(ctx, q) }) { Icon(Icons.Default.Share, "Share") }
+                                    IconButton(onClick = { scope.launch { Sharing.shareQuoteImage(ctx, q, prefs) } }) { Icon(Icons.Default.Share, "Share as image") }
                                 }
                             }
                         }
@@ -592,6 +831,17 @@ fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) 
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(d.url))) }, Modifier.fillMaxWidth()) { Text("Open full article") }
                 }
+                SectionHeader("Your taste")
+                Text("Shapes which quotes come up next.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = { prefs.nudgeArticle(d.id, 1); prefs.nudgeAuthor(d.author, 1); feedback = "More from this article and ${d.author}." }) { Text("More like this") }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = { prefs.nudgeArticle(d.id, -1); prefs.nudgeAuthor(d.author, -1); feedback = "Less from this article and ${d.author}." }) { Text("Less like this") }
+                }
+                TextButton(onClick = { prefs.setMuted(d.author, !muted); muted = !muted; feedback = if (muted) "${d.author} is muted. Unmute in Settings." else "${d.author} is back." }) {
+                    Text(if (muted) "Unmute ${d.author}" else "Mute ${d.author}")
+                }
+                if (feedback.isNotBlank()) Text(feedback, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(32.dp))
             }
         }
@@ -635,6 +885,12 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
     var maxChars by remember { mutableIntStateOf(prefs.maxWallpaperChars) }
     var showContext by remember { mutableStateOf(prefs.showContext) }
     var unmetered by remember { mutableStateOf(prefs.unmeteredOnly) }
+    var grace by remember { mutableIntStateOf(prefs.graceSeconds) }
+    var position by remember { mutableStateOf(prefs.lockPosition) }
+    var tod by remember { mutableStateOf(prefs.timeOfDayThemes) }
+    var weekly by remember { mutableStateOf(prefs.weeklyReviewOn) }
+    var muted by remember { mutableStateOf(prefs.mutedAuthors.sorted()) }
+    var weights by remember { mutableStateOf(Categories.ALL.associateWith { prefs.categoryWeight(it) }) }
     var feedUrl by remember { mutableStateOf(prefs.feedUrl) }
     var syncing by remember { mutableStateOf(false) }
     var syncMsg by remember { mutableStateOf(if (prefs.lastSync > 0) "Last updated ${DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(prefs.lastSync))} · ${prefs.lastSyncMessage}" else "Not downloaded yet") }
@@ -654,6 +910,11 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
             "Under 15 minutes the phone uses exact alarms and redraws the lock screen each time, which uses more battery.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp),
         )
+
+        Text("Keep a quote after the screen turns off", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 12.dp))
+        Text("So a quote you just glanced at is still there when you wake the phone again. It never changes while the screen is on.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ChipRow(listOf(0, 15, 30, 60, 120, 300), grace, label = { if (it == 0) "Off" else graceLabel(it) }) { grace = it; prefs.graceSeconds = it }
 
         Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -678,6 +939,9 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
         }
         Text("Wallpaper", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
         ChipRow(listOf("off", "lock", "both"), wallpaper, label = { when (it) { "off" -> "Off"; "lock" -> "Lock screen"; else -> "Lock + home" } }) { wallpaper = it; prefs.wallpaperMode = it; reapplyWallpaper() }
+        Text("Quote position on the lock screen", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
+        Text("Choose Lower if your lock-screen clock covers the quote. Lower uses shorter quotes and leaves out the why-it-matters line.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ChipRow(listOf("middle", "lower"), position, label = { if (it == "middle") "Middle" else "Lower" }) { position = it; prefs.lockPosition = it; reapplyWallpaper() }
         Text("Card style", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
         ChipRow(listOf("rotate", "navy", "paper", "forest", "plum"), style, label = { it.replaceFirstChar { c -> c.uppercase() } }) { style = it; prefs.cardStyle = it; reapplyWallpaper() }
         Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -691,18 +955,48 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
         Slider(maxChars.toFloat(), { maxChars = (it / 20).toInt() * 20 }, onValueChangeFinished = { prefs.maxWallpaperChars = maxChars }, valueRange = 120f..600f)
 
         SectionHeader("Article types")
-        Text("Switch off any type you don't want quotes from.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Switch off any type you don't want, or choose how often each one comes up.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Categories.ALL.forEach { c ->
-            Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(Categories.short(c), style = MaterialTheme.typography.bodyLarge)
-                    Text(Categories.blurb(c), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.padding(vertical = 4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(Categories.short(c), style = MaterialTheme.typography.bodyLarge)
+                        Text(Categories.blurb(c), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(c in cats, { on ->
+                        val n = if (on) cats + c else cats - c
+                        if (n.isNotEmpty()) { cats = n; prefs.categories = n }
+                    })
                 }
-                Switch(c in cats, { on ->
-                    val n = if (on) cats + c else cats - c
-                    if (n.isNotEmpty()) { cats = n; prefs.categories = n }
-                })
+                if (c in cats) ChipRow(listOf(0, 1, 2), weights[c] ?: 1, label = { listOf("Less", "Normal", "More")[it] }) {
+                    prefs.setCategoryWeight(c, it); weights = weights + (c to it)
+                }
             }
+        }
+        Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Match the time of day", style = MaterialTheme.typography.bodyLarge)
+                Text("More leadership and teaching in the morning, more family in the evening", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(tod, { tod = it; prefs.timeOfDayThemes = it })
+        }
+        if (muted.isNotEmpty()) {
+            Text("Muted authors", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 12.dp))
+            muted.forEach { a ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(a, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { prefs.setMuted(a, false); muted = prefs.mutedAuthors.sorted() }) { Text("Unmute") }
+                }
+            }
+        }
+
+        SectionHeader("Weekly review")
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Sunday evening reminder", style = MaterialTheme.typography.bodyLarge)
+                Text("A look back at the quotes you saved that week", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(weekly, { weekly = it; prefs.weeklyReviewOn = it })
         }
 
         SectionHeader("Text size")
@@ -730,10 +1024,18 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
         if (feedUrl.trim().trimEnd('/') != prefs.feedUrl.trimEnd('/')) {
             TextButton(onClick = { prefs.feedUrl = feedUrl; feedUrl = prefs.feedUrl }) { Text("Save address") }
         }
-        Spacer(Modifier.height(24.dp))
-        Text("Article Quotes ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        SectionHeader("App version")
+        Text("Article Quotes ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(8.dp))
+        UpdateCard(prefs, compact = false)
         Spacer(Modifier.height(24.dp))
     }
+}
+
+fun graceLabel(sec: Int): String = when {
+    sec < 60 -> "$sec seconds"
+    sec == 60 -> "1 minute"
+    else -> "${sec / 60} minutes"
 }
 
 @Composable

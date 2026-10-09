@@ -56,6 +56,11 @@ class Prefs(ctx: Context) {
         set(v) = sp.edit().putInt("maxWallpaperChars", v.coerceIn(120, 600)).apply()
 
     /** Show the "why it matters" line on the lock-screen card. */
+    /** Where the quote sits on the lock screen: "middle" or "lower" (for phones with a big centred clock). */
+    var lockPosition: String
+        get() = sp.getString("lockPosition", "middle") ?: "middle"
+        set(v) = sp.edit().putString("lockPosition", v).apply()
+
     var showContext: Boolean
         get() = sp.getBoolean("showContext", true)
         set(v) = sp.edit().putBoolean("showContext", v).apply()
@@ -139,9 +144,132 @@ class Prefs(ctx: Context) {
         val existing = list.indexOfFirst { it.id == q.id }
         val nowFav = if (existing >= 0) { list.removeAt(existing); false } else { list.add(0, q); true }
         val arr = JSONArray(); list.forEach { arr.put(it.toJson()) }
+        val at = runCatching { JSONObject(sp.getString("favSavedAt", "{}") ?: "{}") }.getOrElse { JSONObject() }
+        if (nowFav) at.put(q.id, System.currentTimeMillis()) else at.remove(q.id)
+        sp.edit().putString("favSavedAt", at.toString()).apply()
+        if (nowFav) nudgeAuthor(q.author, 1)
         sp.edit().putString("favorites", arr.toString()).apply()
         return nowFav
     }
+
+    // ---- screen grace: don't swap the quote right after the screen goes dark ----
+    /** Seconds after the screen turns off during which the quote stays put. 0 = off. */
+    var graceSeconds: Int
+        get() = sp.getInt("graceSeconds", 30)
+        set(v) = sp.edit().putInt("graceSeconds", v.coerceIn(0, 600)).apply()
+
+    /** When the app process last started; screen events before this were not observed. */
+    var processStart: Long
+        get() = sp.getLong("processStart", 0L)
+        set(v) = sp.edit().putLong("processStart", v).apply()
+
+    /** A timed change was skipped because the screen was on; do it once the screen goes dark. */
+    var pendingChange: Boolean
+        get() = sp.getBoolean("pendingChange", false)
+        set(v) = sp.edit().putBoolean("pendingChange", v).apply()
+
+    var lastScreenOff: Long
+        get() = sp.getLong("lastScreenOff", 0L)
+        set(v) = sp.edit().putLong("lastScreenOff", v).apply()
+
+    var lastScreenOn: Long
+        get() = sp.getLong("lastScreenOn", 0L)
+        set(v) = sp.edit().putLong("lastScreenOn", v).apply()
+
+    // ---- taste: "more like this" / "less like this", muted authors, category mix ----
+    private fun intMap(key: String): MutableMap<String, Int> {
+        val o = runCatching { JSONObject(sp.getString(key, "{}") ?: "{}") }.getOrElse { JSONObject() }
+        val m = HashMap<String, Int>(); o.keys().forEach { m[it] = o.optInt(it) }; return m
+    }
+    private fun putIntMap(key: String, m: Map<String, Int>) {
+        val o = JSONObject(); m.forEach { (k, v) -> if (v != 0) o.put(k, v) }
+        sp.edit().putString(key, o.toString()).apply()
+    }
+
+    /** Author score from -3 to +3, nudged by the like/less buttons and by saving a quote. */
+    val authorScores: Map<String, Int> get() = intMap("authorScores")
+    fun nudgeAuthor(author: String, by: Int) {
+        val m = intMap("authorScores"); m[author] = ((m[author] ?: 0) + by).coerceIn(-3, 3); putIntMap("authorScores", m)
+    }
+
+    /** Article score from -2 to +2 (more/less like this applies to the whole article). */
+    val articleScores: Map<String, Int> get() = intMap("articleScores")
+    fun nudgeArticle(id: String, by: Int) {
+        val m = intMap("articleScores"); m[id] = ((m[id] ?: 0) + by).coerceIn(-2, 2); putIntMap("articleScores", m)
+    }
+
+    val mutedAuthors: Set<String> get() = sp.getStringSet("mutedAuthors", emptySet())?.toSet() ?: emptySet()
+    fun setMuted(author: String, muted: Boolean) {
+        val s = mutedAuthors.toMutableSet(); if (muted) s.add(author) else s.remove(author)
+        sp.edit().putStringSet("mutedAuthors", s).apply()
+    }
+
+    /** How much of each category: 0 = less, 1 = normal, 2 = more. */
+    fun categoryWeight(c: String): Int = sp.getInt("catw:$c", 1)
+    fun setCategoryWeight(c: String, w: Int) = sp.edit().putInt("catw:$c", w.coerceIn(0, 2)).apply()
+
+    /** Leadership and education in the morning, family in the evening. */
+    var timeOfDayThemes: Boolean
+        get() = sp.getBoolean("todThemes", true)
+        set(v) = sp.edit().putBoolean("todThemes", v).apply()
+
+    // ---- reading loop ----
+    val readArticles: Set<String> get() = sp.getStringSet("readArticles", emptySet())?.toSet() ?: emptySet()
+    fun markRead(id: String) {
+        if (id in readArticles) return
+        val list = (sp.getString("readOrder", "") ?: "").split(",").filter { it.isNotBlank() }.toMutableList()
+        list.remove(id); list.add(id); while (list.size > 2000) list.removeAt(0)
+        sp.edit().putStringSet("readArticles", list.toSet()).putString("readOrder", list.joinToString(",")).apply()
+    }
+
+    /** Articles saved for later: JSON list of {id, title, author, category, date, savedAt}. */
+    val readLater: List<JSONObject>
+        get() {
+            val arr = runCatching { JSONArray(sp.getString("readLater", "[]") ?: "[]") }.getOrElse { JSONArray() }
+            return List(arr.length()) { arr.getJSONObject(it) }
+        }
+    fun isReadLater(id: String) = readLater.any { it.optString("id") == id }
+    fun toggleReadLater(a: ArticleDetail): Boolean {
+        val list = readLater.toMutableList()
+        val i = list.indexOfFirst { it.optString("id") == a.id }
+        val now = if (i >= 0) { list.removeAt(i); false } else {
+            list.add(0, JSONObject().put("id", a.id).put("title", a.title).put("author", a.author)
+                .put("category", a.category).put("date", a.date).put("savedAt", System.currentTimeMillis())); true
+        }
+        val arr = JSONArray(); list.forEach { arr.put(it) }
+        sp.edit().putString("readLater", arr.toString()).apply()
+        return now
+    }
+
+    fun setReadLater(list: List<JSONObject>) {
+        val arr = JSONArray(); list.forEach { arr.put(it) }
+        sp.edit().putString("readLater", arr.toString()).apply()
+    }
+
+    /** When each favourite was saved (quote id -> millis), for the weekly review. */
+    val favoriteSavedAt: Map<String, Long>
+        get() {
+            val o = runCatching { JSONObject(sp.getString("favSavedAt", "{}") ?: "{}") }.getOrElse { JSONObject() }
+            val m = HashMap<String, Long>(); o.keys().forEach { m[it] = o.optLong(it) }; return m
+        }
+
+    var weeklyReviewOn: Boolean
+        get() = sp.getBoolean("weeklyReview", true)
+        set(v) = sp.edit().putBoolean("weeklyReview", v).apply()
+
+    /** Set once a "no new articles" notification has gone out, so it isn't repeated daily. */
+    var staleNotified: Boolean
+        get() = sp.getBoolean("staleNotified", false)
+        set(v) = sp.edit().putBoolean("staleNotified", v).apply()
+
+    // ---- app updates ----
+    var lastUpdateCheck: Long
+        get() = sp.getLong("lastUpdateCheck", 0L)
+        set(v) = sp.edit().putLong("lastUpdateCheck", v).apply()
+
+    var availableUpdate: String
+        get() = sp.getString("availableUpdate", "") ?: ""
+        set(v) = sp.edit().putString("availableUpdate", v).apply()
 
     fun inQuietHours(now: Calendar = Calendar.getInstance()): Boolean {
         if (!quietEnabled) return false

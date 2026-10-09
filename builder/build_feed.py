@@ -134,32 +134,87 @@ def _norm(s: str) -> str:
     return clean_ws(s).lower().replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
 
 
-def quote_context(quote: str, bullets: list[str], summary: str, max_len: int = 220) -> str:
+CTX_MAX = 230  # longest "why it matters" line; always a complete sentence or clause
+
+
+def _clauses(sentence: str) -> list[str]:
+    """A long sentence split at strong clause breaks, keeping only pieces that stand alone."""
+    out = [sentence]
+    for sep in (" — ", " -- ", "; ", ": "):
+        if sep in sentence:
+            head = sentence.split(sep, 1)[0].strip()
+            if len(head) >= 60:
+                out.append(head.rstrip(",") + ".")
+    return out
+
+
+def _complete(text: str) -> bool:
+    t = text.rstrip('"”)')
+    return t.endswith((".", "!")) and not t.endswith("..") and "…" not in t
+
+
+def quote_context(quote: str, bullets: list[str], summary: str, max_len: int = CTX_MAX) -> str:
+    """Pick the article's claim that this quote serves, as one complete sentence.
+
+    Candidates are the sentences of the high-impact points (preferred) and of the summary.
+    Restatements of the quote, questions, fragments and over-long sentences are skipped.
+    """
     qw = {_stem(w) for w in _words(quote)}
     nq = _norm(quote)
-    candidates = [(b, 1.15) for b in bullets] + [(s, 1.0) for s in _sentences(summary)]
+    cands: list[tuple[str, float]] = []
+    for b in bullets:
+        b = clean_ws(b)
+        if b and b[-1] not in ".!?\u201d\")":
+            b += "."  # PDF bullet points often lack a final full stop
+        for sent in _sentences(b) or [b]:
+            for c in _clauses(clean_ws(sent)):
+                cands.append((c, 1.15))
+    for sent in _sentences(summary):
+        for c in _clauses(clean_ws(sent)):
+            cands.append((c, 1.0))
     best, best_score = None, 0.0
-    for text, boost in candidates:
+    for text, boost in cands:
+        if len(text) > max_len or len(text) < 50 or not _complete(text):
+            continue
         tw = {_stem(w) for w in _words(text)}
         if not tw:
             continue
         shared = qw & tw
-        # Skip candidates that merely restate the quote (either one contained in the other).
         if qw and (len(shared) >= 0.6 * len(qw) or len(shared) >= 0.85 * len(tw)):
             continue
         nt = _norm(text)
         if nt in nq or nq in nt:
             continue
-        # Context should be a claim, not a fragment or a rhetorical question.
-        if len(nt) < 50 or nt.rstrip('"').endswith("?"):
-            boost *= 0.4
         score = len(shared) / (len(tw) ** 0.5) * boost
         if score > best_score:
             best, best_score = text, score
     if best is None or best_score < 0.55:
-        sents = _sentences(summary)
-        best = sents[0] if sents else ""
-    return _trim(best, max_len)
+        # Too little overlap to claim a link: use the article's opening claim instead.
+        fits = [c for s in _sentences(summary) for c in _clauses(clean_ws(s)) if 50 <= len(c) <= max_len and _complete(c)]
+        best = fits[0] if fits else (best or "")
+    return best
+
+
+def load_context_overrides(archive_dir) -> dict:
+    """Optional Claude-written lines from the archive task: QUOTE_CONTEXT.jsonl,
+    one {"file": <pdf filename>, "context": [one sentence per quote]} per line."""
+    out = {}
+    f = Path(str(archive_dir)) / "QUOTE_CONTEXT.jsonl"
+    if not f.exists():
+        return out
+    for line in f.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+            if not isinstance(rec, dict):
+                continue
+            if isinstance(rec.get("context"), list):
+                out[rec["file"]] = [clean_ws(str(x)) for x in rec["context"]]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            continue
+    return out
 
 
 def canonical_section(name: str) -> str:
@@ -354,7 +409,8 @@ def write_json(path: Path, data, compact=True) -> str:
     return hashlib.sha1(txt.encode("utf-8")).hexdigest()[:16]
 
 
-def build_feed(articles: list[dict], feed_dir: Path, cfg: dict) -> dict:
+def build_feed(articles: list[dict], feed_dir: Path, cfg: dict, overrides: dict | None = None) -> dict:
+    overrides = overrides or {}
     feed_cats = set(cfg["feed_categories"])
     feed_articles = [a for a in articles if a["category"] in feed_cats and a["quotes"]]
     feed_articles.sort(key=lambda a: (a["date"], a["title"]), reverse=True)
@@ -366,7 +422,9 @@ def build_feed(articles: list[dict], feed_dir: Path, cfg: dict) -> dict:
     contexts: dict[str, list[str]] = {}
     for a in feed_articles:
         keep.add(f"{a['id']}.json")
-        ctx = [quote_context(q, a["bullets"], a["summary"]) for q in a["quotes"]]
+        ov = overrides.get(a["file"])
+        ctx = [ov[i] if ov and i < len(ov) and ov[i] else quote_context(q, a["bullets"], a["summary"])
+               for i, q in enumerate(a["quotes"])]
         contexts[a["id"]] = ctx
         write_json(art_dir / f"{a['id']}.json", {
             "id": a["id"], "category": a["category"], "title": a["title"], "author": a["author"],
@@ -422,6 +480,7 @@ def build_feed(articles: list[dict], feed_dir: Path, cfg: dict) -> dict:
         "version": 1,
         "generated": generated,
         "articleCount": len(feed_articles),
+        "newest": feed_articles[0]["date"] if feed_articles else None,
         "quoteCount": sum(len(a["quotes"]) for a in feed_articles),
         "categories": cats,
         "shards": shard_list,
@@ -533,7 +592,8 @@ def main() -> int:
         articles.append(new_cache[k])
     save_cache(cache_dir, new_cache)
 
-    manifest = build_feed(articles, feed_dir, cfg)
+    overrides = load_context_overrides(archive)
+    manifest = build_feed(articles, feed_dir, cfg, overrides)
     drive_written = 0 if args.no_drive else write_drive_docs(articles, drive_dir, cfg)
 
     no_quotes = sum(1 for a in articles if not a["quotes"])

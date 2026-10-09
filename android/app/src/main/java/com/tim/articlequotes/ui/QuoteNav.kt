@@ -83,6 +83,36 @@ class QuoteNav(
         val q = quote ?: return
         fav = prefs.toggleFavorite(q)
     }
+
+    /** Short-lived confirmation shown under the card ("Got it: more like this"). */
+    var toast by mutableStateOf(""); private set
+    private var toastJob: Job? = null
+    private fun say(msg: String) {
+        android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
+        toast = msg
+        toastJob?.cancel()
+        toastJob = scope.launch { delay(2500); toast = "" }
+    }
+
+    /** More from this article and author. */
+    fun moreLikeThis() {
+        val q = quote ?: return
+        prefs.nudgeArticle(q.articleId, 1); prefs.nudgeAuthor(q.author, 1)
+        say("Got it: more like this")
+    }
+
+    /** Less from this article and author, and move on. */
+    fun lessLikeThis() {
+        val q = quote ?: return
+        prefs.nudgeArticle(q.articleId, -1); prefs.nudgeAuthor(q.author, -1)
+        say("Got it: fewer like this")
+        newQuote()
+    }
+
+    fun shareImage() {
+        val q = quote ?: return
+        scope.launch { Sharing.shareQuoteImage(ctx, q, prefs) }
+    }
 }
 
 /** Swipe left for the next quote, right for the previous one. */
