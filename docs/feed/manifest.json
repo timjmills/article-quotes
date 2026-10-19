@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "generated": "2026-10-17T19:02:29+00:00",
-  "articleCount": 6754,
-  "newest": "2026-10-17",
-  "quoteCount": 40634,
+  "generated": "2026-10-19T07:02:23+00:00",
+  "articleCount": 6844,
+  "newest": "2026-10-19",
+  "quoteCount": 41220,
   "categories": {
-    "Education - Learning & Curriculum": 1561,
-    "Leadership": 2307,
-    "Family": 338,
-    "Classical Education": 117,
-    "Education - Practice & Culture": 1960,
-    "Education - Ed-Tech": 471
+    "Education - Learning & Curriculum": 1596,
+    "Leadership": 2331,
+    "Family": 339,
+    "Education - Practice & Culture": 1984,
+    "Classical Education": 118,
+    "Education - Ed-Tech": 476
   },
   "shards": [
     {
@@ -625,44 +625,44 @@
     {
       "name": "2016-08",
       "path": "quotes/2016-08.json",
-      "sha": "811d6e1aa3931d50",
-      "articles": 7,
-      "quotes": 45
+      "sha": "123511e36b279a4b",
+      "articles": 8,
+      "quotes": 51
     },
     {
       "name": "2016-09",
       "path": "quotes/2016-09.json",
-      "sha": "b11e47920e9ebcb9",
-      "articles": 4,
-      "quotes": 27
+      "sha": "4e9c9f0444759932",
+      "articles": 10,
+      "quotes": 64
     },
     {
       "name": "2016-10",
       "path": "quotes/2016-10.json",
-      "sha": "f685072f5424abce",
-      "articles": 6,
-      "quotes": 39
+      "sha": "d771db222aec064e",
+      "articles": 12,
+      "quotes": 75
     },
     {
       "name": "2016-11",
       "path": "quotes/2016-11.json",
-      "sha": "bd7a223a9ed86492",
-      "articles": 4,
-      "quotes": 26
+      "sha": "3ae7c194b085a5a5",
+      "articles": 9,
+      "quotes": 53
     },
     {
       "name": "2016-12",
       "path": "quotes/2016-12.json",
-      "sha": "84b66b5ed392e1ea",
-      "articles": 3,
-      "quotes": 21
+      "sha": "fc4ccbe5399d2687",
+      "articles": 4,
+      "quotes": 27
     },
     {
       "name": "2017-01",
       "path": "quotes/2017-01.json",
-      "sha": "af12137bcf9edd7f",
-      "articles": 4,
-      "quotes": 27
+      "sha": "4f1ce1a0e26315fc",
+      "articles": 5,
+      "quotes": 33
     },
     {
       "name": "2017-02",
@@ -1234,65 +1234,65 @@
     {
       "name": "2023-11",
       "path": "quotes/2023-11.json",
-      "sha": "f32a97474db271e1",
-      "articles": 59,
-      "quotes": 373
+      "sha": "a6993d5404f178fb",
+      "articles": 61,
+      "quotes": 387
     },
     {
       "name": "2023-12",
       "path": "quotes/2023-12.json",
-      "sha": "e1828d119e0ab273",
-      "articles": 45,
-      "quotes": 282
+      "sha": "6158b15d8c49ab2f",
+      "articles": 47,
+      "quotes": 296
     },
     {
       "name": "2024-01",
       "path": "quotes/2024-01.json",
-      "sha": "e0807b4d84c6daf7",
-      "articles": 45,
-      "quotes": 250
+      "sha": "10c06a187d308e32",
+      "articles": 48,
+      "quotes": 270
     },
     {
       "name": "2024-02",
       "path": "quotes/2024-02.json",
-      "sha": "8d11d607b0b6db28",
-      "articles": 54,
-      "quotes": 319
+      "sha": "1aefacd3fbe36e8a",
+      "articles": 57,
+      "quotes": 340
     },
     {
       "name": "2024-03",
       "path": "quotes/2024-03.json",
-      "sha": "3a8813ac90325c86",
-      "articles": 55,
-      "quotes": 318
+      "sha": "15f391507959d19c",
+      "articles": 59,
+      "quotes": 346
     },
     {
       "name": "2024-04",
       "path": "quotes/2024-04.json",
-      "sha": "7ca407e708b3d774",
-      "articles": 48,
-      "quotes": 265
+      "sha": "1048deb0a9f435ae",
+      "articles": 50,
+      "quotes": 279
     },
     {
       "name": "2024-05",
       "path": "quotes/2024-05.json",
-      "sha": "e4c7c2282ecd2ddd",
-      "articles": 54,
-      "quotes": 292
+      "sha": "48a0f54de1d0cb07",
+      "articles": 57,
+      "quotes": 312
     },
     {
       "name": "2024-06",
       "path": "quotes/2024-06.json",
-      "sha": "84a1c47320e10dd0",
-      "articles": 54,
-      "quotes": 289
+      "sha": "c934a2c760e71fc6",
+      "articles": 57,
+      "quotes": 309
     },
     {
       "name": "2024-07",
       "path": "quotes/2024-07.json",
-      "sha": "f1f9e7ffcb6276b1",
-      "articles": 54,
-      "quotes": 298
+      "sha": "ffc5c5be158efd00",
+      "articles": 55,
+      "quotes": 305
     },
     {
       "name": "2024-08",
@@ -1304,9 +1304,9 @@
     {
       "name": "2024-09",
       "path": "quotes/2024-09.json",
-      "sha": "484214d878d9b7dd",
-      "articles": 51,
-      "quotes": 277
+      "sha": "08372410ccafaceb",
+      "articles": 55,
+      "quotes": 300
     },
     {
       "name": "2024-10",
@@ -1318,30 +1318,30 @@
     {
       "name": "2024-11",
       "path": "quotes/2024-11.json",
-      "sha": "52eb63e3734eb80b",
-      "articles": 89,
-      "quotes": 531
+      "sha": "bd5af648d5905aca",
+      "articles": 90,
+      "quotes": 536
     },
     {
       "name": "2024-12",
       "path": "quotes/2024-12.json",
-      "sha": "2eb22a8247e8e16a",
-      "articles": 68,
-      "quotes": 379
+      "sha": "6cced80115f8c5be",
+      "articles": 73,
+      "quotes": 409
     },
     {
       "name": "2025-01",
       "path": "quotes/2025-01.json",
-      "sha": "9610366fe212a4d6",
-      "articles": 64,
-      "quotes": 365
+      "sha": "f6c1dc1006dca9bb",
+      "articles": 72,
+      "quotes": 407
     },
     {
       "name": "2025-02",
       "path": "quotes/2025-02.json",
-      "sha": "96198ddd5e78d85a",
-      "articles": 58,
-      "quotes": 333
+      "sha": "a382b3e52c56b509",
+      "articles": 62,
+      "quotes": 354
     },
     {
       "name": "2025-03",
@@ -1479,9 +1479,9 @@
     {
       "name": "2026-10",
       "path": "quotes/2026-10.json",
-      "sha": "690a18494887eefa",
-      "articles": 377,
-      "quotes": 2724
+      "sha": "35b9cf2bf8039123",
+      "articles": 402,
+      "quotes": 2913
     }
   ]
 }
