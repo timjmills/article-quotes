@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "generated": "2026-10-25T19:00:20+00:00",
-  "articleCount": 7141,
+  "generated": "2026-10-26T07:02:31+00:00",
+  "articleCount": 7163,
   "newest": "2026-10-25",
-  "quoteCount": 43214,
+  "quoteCount": 43345,
   "categories": {
-    "Education - Learning & Curriculum": 1681,
-    "Leadership": 2433,
+    "Education - Learning & Curriculum": 1689,
+    "Leadership": 2435,
     "Classical Education": 125,
     "Education - Ed-Tech": 501,
     "Family": 353,
-    "Education - Practice & Culture": 2048
+    "Education - Practice & Culture": 2060
   },
   "shards": [
     {
@@ -450,9 +450,9 @@
     {
       "name": "2014-07",
       "path": "quotes/2014-07.json",
-      "sha": "6a2ab4547dc97050",
-      "articles": 5,
-      "quotes": 33
+      "sha": "1224f4cb7f006947",
+      "articles": 6,
+      "quotes": 39
     },
     {
       "name": "2014-08",
@@ -660,9 +660,9 @@
     {
       "name": "2017-01",
       "path": "quotes/2017-01.json",
-      "sha": "3c35e0f338aa9d80",
-      "articles": 6,
-      "quotes": 39
+      "sha": "642b57aa421bd9ef",
+      "articles": 7,
+      "quotes": 46
     },
     {
       "name": "2017-02",
@@ -898,44 +898,44 @@
     {
       "name": "2019-11",
       "path": "quotes/2019-11.json",
-      "sha": "c26f22a7a880aac0",
-      "articles": 4,
-      "quotes": 24
+      "sha": "b538fb6b09ecad52",
+      "articles": 8,
+      "quotes": 48
     },
     {
       "name": "2019-12",
       "path": "quotes/2019-12.json",
-      "sha": "0f144478d589cae6",
-      "articles": 2,
-      "quotes": 12
+      "sha": "00a77a112d6f050b",
+      "articles": 4,
+      "quotes": 25
     },
     {
       "name": "2020-01",
       "path": "quotes/2020-01.json",
-      "sha": "3f6978b0bc839ffd",
-      "articles": 4,
-      "quotes": 23
+      "sha": "1b6de9f9989b06bc",
+      "articles": 9,
+      "quotes": 51
     },
     {
       "name": "2020-02",
       "path": "quotes/2020-02.json",
-      "sha": "624b020e2eb6d7ff",
-      "articles": 5,
-      "quotes": 29
+      "sha": "711473fa29d14678",
+      "articles": 8,
+      "quotes": 45
     },
     {
       "name": "2020-03",
       "path": "quotes/2020-03.json",
-      "sha": "ca813c12fec82b21",
-      "articles": 4,
-      "quotes": 24
+      "sha": "90974519cb96226a",
+      "articles": 9,
+      "quotes": 54
     },
     {
       "name": "2020-04",
       "path": "quotes/2020-04.json",
-      "sha": "92c5e516deb7c2a8",
-      "articles": 3,
-      "quotes": 18
+      "sha": "88a08268e4529326",
+      "articles": 4,
+      "quotes": 25
     },
     {
       "name": "2020-05",
