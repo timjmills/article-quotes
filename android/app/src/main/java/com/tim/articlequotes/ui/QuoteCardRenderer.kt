@@ -37,7 +37,7 @@ object QuoteCardRenderer {
     fun paletteFor(style: String, q: Quote): Palette =
         palettes.firstOrNull { it.name == style } ?: palettes[abs(q.articleId.hashCode()) % palettes.size]
 
-    fun render(q: Quote, width: Int, height: Int, style: String, textScale: Float, preview: Boolean = false, showContext: Boolean = true, position: String = "middle"): Bitmap {
+    fun render(q: Quote, width: Int, height: Int, style: String, textScale: Float, preview: Boolean = false, showContext: Boolean = true, position: String = "middle", contextScale: Float = 1f): Bitmap {
         val w = max(width, 480); val h = max(height, 800)
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val c = Canvas(bmp)
@@ -74,11 +74,11 @@ object QuoteCardRenderer {
         val quoteText = "“${q.text}”"
 
         // Optional "why it matters" line (max 3 lines) under the attribution.
-        val ctxPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = p.sub; typeface = sans; textSize = subSize * 0.82f }
+        val ctxPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = p.sub; typeface = sans; textSize = subSize * 0.82f * contextScale }
         val ctxLayout: StaticLayout? = if (showContext && !lower && q.context.isNotBlank()) {
             StaticLayout.Builder.obtain(q.context, 0, q.context.length, ctxPaint, areaW)
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL).setLineSpacing(0f, 1.15f)
-                .setMaxLines(4).setEllipsize(android.text.TextUtils.TruncateAt.END).setIncludePad(false).build()
+                .setMaxLines(if (contextScale > 1.2f) 6 else 4).setEllipsize(android.text.TextUtils.TruncateAt.END).setIncludePad(false).build()
         } else null
         val attributionBlock = subSize * 4.2f + (ctxLayout?.let { it.height + subSize * 0.6f } ?: 0f)
 
@@ -115,8 +115,10 @@ object QuoteCardRenderer {
         c.drawText(ellipsize(q.author, author, areaW.toFloat()), left, y + subSize, author)
         y += subSize * 1.45f
         val title = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = p.sub; typeface = sans; textSize = subSize * 0.9f }
-        c.drawText(ellipsize(q.title, title, areaW.toFloat()), left, y + subSize * 0.9f, title)
-        y += subSize * 1.4f
+        if (q.title.isNotBlank()) {
+            c.drawText(ellipsize(q.title, title, areaW.toFloat()), left, y + subSize * 0.9f, title)
+            y += subSize * 1.4f
+        }
         val cat = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = p.accent; typeface = sansBold; textSize = subSize * 0.7f; letterSpacing = 0.12f }
         c.drawText(Categories.short(q.category).uppercase(), left, y + subSize * 0.7f, cat)
         if (ctxLayout != null) {
@@ -134,8 +136,8 @@ object QuoteCardRenderer {
     }
 
     /** Small helper for the in-app preview: same card at a fraction of the size. */
-    fun preview(q: Quote, style: String, textScale: Float, width: Int, showContext: Boolean = true): Bitmap =
-        render(q, width, (width * 1.6f).toInt(), style, textScale, preview = true, showContext = showContext)
+    fun preview(q: Quote, style: String, textScale: Float, width: Int, showContext: Boolean = true, contextScale: Float = 1f): Bitmap =
+        render(q, width, (width * 1.6f).toInt(), style, textScale, preview = true, showContext = showContext, contextScale = contextScale)
 
     fun contrastOn(color: Int): Int = if (Color.luminance(color) > 0.5) Color.BLACK else Color.WHITE
 

@@ -46,6 +46,7 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
         val prefs = Prefs(applicationContext)
         val repo = FeedRepo(applicationContext, prefs)
         val r = repo.sync()
+        if (r.ok) Rotator.prefetchProverbs(applicationContext)
         // Once a day: look for a newer app build, and warn if the archive has gone quiet.
         val before = prefs.availableUpdate
         val update = Updater.check(applicationContext)

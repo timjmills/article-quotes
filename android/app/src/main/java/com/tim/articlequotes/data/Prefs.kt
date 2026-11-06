@@ -71,6 +71,35 @@ class Prefs(ctx: Context) {
         get() = sp.getBoolean("stickyNotification", true)
         set(v) = sp.edit().putBoolean("stickyNotification", v).apply()
 
+    // ---- sections: Wisdom and Proverbs mixed in with article quotes ----
+    /** 0 = off, 1 = rarely, 2 = sometimes, 3 = often. */
+    var wisdomFreq: Int
+        get() = sp.getInt("wisdomFreq", 2)
+        set(v) = sp.edit().putInt("wisdomFreq", v.coerceIn(0, 3)).apply()
+
+    var proverbFreq: Int
+        get() = sp.getInt("proverbFreq", 2)
+        set(v) = sp.edit().putInt("proverbFreq", v.coerceIn(0, 3)).apply()
+
+    var wisdomGroups: Set<String>
+        get() = sp.getStringSet("wisdomGroups", null)?.toSet() ?: WisdomGroups.ALL.toSet()
+        set(v) = sp.edit().putStringSet("wisdomGroups", v.toSet()).apply()
+
+    /** "order" walks through Proverbs from chapter 1; "random" picks any reading. */
+    var proverbOrder: String
+        get() = sp.getString("proverbOrder", "order") ?: "order"
+        set(v) = sp.edit().putString("proverbOrder", v).apply()
+
+    /** Next reading when going in order. */
+    var proverbIndex: Int
+        get() = sp.getInt("proverbIndex", 0)
+        set(v) = sp.edit().putInt("proverbIndex", v.coerceAtLeast(0)).apply()
+
+    /** Size of the "why it matters" line, separate from the quote (0.8x to 2x). */
+    var contextScale: Float
+        get() = sp.getFloat("contextScale", 1.0f)
+        set(v) = sp.edit().putFloat("contextScale", v.coerceIn(0.8f, 2.0f)).apply()
+
     var showContext: Boolean
         get() = sp.getBoolean("showContext", true)
         set(v) = sp.edit().putBoolean("showContext", v).apply()
@@ -124,6 +153,9 @@ class Prefs(ctx: Context) {
         if (idx >= 0 && idx < list.size - 1) { while (list.size > idx + 1) list.removeAt(list.size - 1) }
         list.add(q)
         while (list.size > 300) list.removeAt(0)
+        // ESV text counts toward the app's 500-verse limit, so only the latest readings stay in history.
+        val provIdx = list.indices.filter { list[it].isProverb }
+        if (provIdx.size > MAX_PROVERBS_IN_HISTORY) provIdx.dropLast(MAX_PROVERBS_IN_HISTORY).reversed().forEach { list.removeAt(it) }
         val arr = JSONArray(); list.forEach { arr.put(it.toJson()) }
         sp.edit().putString("history", arr.toString()).putInt("historyIndex", list.size - 1).apply()
     }
@@ -292,5 +324,10 @@ class Prefs(ctx: Context) {
         val s = quietStartHour; val e = quietEndHour
         if (s == e) return false
         return if (s < e) h in s until e else (h >= s || h < e)
+    }
+
+    companion object {
+        /** Proverbs readings kept in history (their ESV text counts toward the 500-verse limit). */
+        const val MAX_PROVERBS_IN_HISTORY = 30
     }
 }

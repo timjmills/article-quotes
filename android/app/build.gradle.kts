@@ -24,8 +24,8 @@ android {
         applicationId = "com.tim.articlequotes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.4.1"
+        versionCode = 7
+        versionName = "1.5"
         buildConfigField("String", "DEFAULT_FEED_URL", "\"https://timjmills.github.io/article-quotes/feed/\"")
     }
 
@@ -65,6 +65,7 @@ android {
     }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        resources.excludes += "/META-INF/{DEPENDENCIES,LICENSE*,NOTICE*,*.kotlin_module,versions/**}"
     }
     lint {
         checkReleaseBuilds = false
@@ -85,5 +86,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // Claude API (devotionals). Official Anthropic Java SDK; Kotlin uses it directly.
+    implementation("com.anthropic:anthropic-java:3.2.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

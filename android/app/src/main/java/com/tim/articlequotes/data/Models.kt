@@ -13,17 +13,39 @@ data class Quote(
     val date: String,        // YYYY-MM-DD
     /** "Why it matters": the article's point this quote serves. May be empty for old feeds. */
     val context: String = "",
+    /** "article" (from the archive), "wisdom" (curated quotes) or "proverb" (a Proverbs reading). */
+    val kind: String = KIND_ARTICLE,
 ) {
+    val isArticle get() = kind == KIND_ARTICLE
+    val isProverb get() = kind == KIND_PROVERB
+    val isWisdom get() = kind == KIND_WISDOM
+
     fun toJson(): JSONObject = JSONObject()
         .put("id", id).put("aid", articleId).put("t", text).put("c", category)
-        .put("ti", title).put("a", author).put("d", date).put("x", context)
+        .put("ti", title).put("a", author).put("d", date).put("x", context).put("k", kind)
 
     companion object {
         fun fromJson(o: JSONObject): Quote = Quote(
             id = o.getString("id"), articleId = o.getString("aid"), text = o.getString("t"),
             category = o.optString("c"), title = o.optString("ti"), author = o.optString("a"), date = o.optString("d"),
-            context = o.optString("x"),
+            context = o.optString("x"), kind = o.optString("k", KIND_ARTICLE).ifBlank { KIND_ARTICLE },
         )
+
+        const val KIND_ARTICLE = "article"
+        const val KIND_WISDOM = "wisdom"
+        const val KIND_PROVERB = "proverb"
+    }
+}
+
+/** Wisdom groups shipped in wisdom.json, in display order. */
+object WisdomGroups {
+    val ALL = listOf("Stoics", "Leadership", "Christian", "Statesmen")
+    fun blurb(g: String) = when (g) {
+        "Stoics" -> "Marcus Aurelius, Seneca, Epictetus"
+        "Leadership" -> "John Maxwell, Brian Tracy"
+        "Christian" -> "Augustine, Calvin, Luther, Spurgeon, Lewis and others"
+        "Statesmen" -> "Lincoln, Roosevelt, Washington, Churchill, Drucker and others"
+        else -> ""
     }
 }
 

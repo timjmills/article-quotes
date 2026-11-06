@@ -149,7 +149,18 @@ private fun ReaderRoot(activity: Activity, onClose: () -> Unit) {
             val a = article
             if (a != null) {
                 BackHandler { article = null }
-                ArticleScreen(a, repo, prefs, onBack = { article = null }, openUrl = openUrl)
+                DetailScreen(
+                    a, repo, prefs, onBack = { article = null }, openUrl = openUrl,
+                    onOpenSettings = {
+                        ReaderActivity.unlockThen(activity) {
+                            activity.startActivity(
+                                Intent(activity, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, MainActivity.TAB_SETTINGS)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                            activity.finish()
+                        }
+                    },
+                )
             } else {
                 FullScreenQuote(
                     nav, prefs, textScale,

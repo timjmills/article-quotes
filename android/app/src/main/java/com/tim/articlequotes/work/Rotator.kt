@@ -10,6 +10,9 @@ import com.tim.articlequotes.data.Prefs
 import com.tim.articlequotes.data.Quote
 import com.tim.articlequotes.data.QuotePicker
 import com.tim.articlequotes.data.Taste
+import com.tim.articlequotes.data.DevotionalStore
+import com.tim.articlequotes.data.EsvClient
+import com.tim.articlequotes.data.ProverbChunk
 import com.tim.articlequotes.ui.QuoteCardRenderer
 import com.tim.articlequotes.widget.QuoteWidget
 import kotlinx.coroutines.Dispatchers
@@ -71,16 +74,71 @@ object Rotator {
             repo.sync()
             pool = repo.quotesFor(prefs.categories)
         }
-        if (pool.isEmpty()) return@withContext null
         val wantWallpaper = prefs.wallpaperMode != "off"
         val taste = Taste.from(prefs)
         // The lower position has less room, so it only takes shorter quotes.
         val maxChars = if (prefs.lockPosition == "lower") minOf(prefs.maxWallpaperChars, 170) else prefs.maxWallpaperChars
-        val q = QuotePicker.pick(pool, taste, if (wantWallpaper) maxChars else null)
-            ?: QuotePicker.pick(pool, taste, null)
+        // Pick a section first (Proverbs, Wisdom or the article archive), then a quote within it.
+        val r = kotlin.random.Random.nextDouble()
+        val pProverb = share(prefs.proverbFreq)
+        val pWisdom = share(prefs.wisdomFreq)
+        val sectionQuote: Quote? = when {
+            r < pProverb -> nextProverb(app, prefs, repo, if (wantWallpaper) maxChars else null)
+            r < pProverb + pWisdom -> repo.wisdom().filter { it.category in prefs.wisdomGroups }.let { w ->
+                QuotePicker.pick(w, taste, if (wantWallpaper) maxChars else null) ?: QuotePicker.pick(w, taste, null)
+            }
+            else -> null
+        }
+        val q = sectionQuote
+            ?: (if (pool.isEmpty()) null else QuotePicker.pick(pool, taste, if (wantWallpaper) maxChars else null) ?: QuotePicker.pick(pool, taste, null))
             ?: return@withContext null
         show(app, q, notify = notify && prefs.notificationsOn)
+        prefetchProverbs(app)
         q
+    }
+
+    /** Share of quote changes given to a section: off, rarely, sometimes, often. */
+    fun share(freq: Int): Double = when (freq) { 1 -> 0.10; 2 -> 0.25; 3 -> 0.40; else -> 0.0 }
+
+    /** Builds the lock-screen quote for a Proverbs reading, using ESV text (cached or fetched). */
+    suspend fun proverbQuote(app: Context, chunk: ProverbChunk): Quote? {
+        val text = EsvClient(app).text(chunk).getOrNull() ?: return null
+        val why = com.tim.articlequotes.data.DevotionalWriter(app).significance(chunk, text).orEmpty()
+        return Quote(chunk.id, chunk.id, text, "Proverbs", "", "${chunk.ref} (ESV)", "", why, Quote.KIND_PROVERB)
+    }
+
+    /**
+     * The next reading (in order, or random). Only advances when its text is available.
+     * A reading longer than [maxChars] (the lock-screen card limit) is passed over, and the
+     * following one tried, so long passages never overflow the card.
+     */
+    suspend fun nextProverb(app: Context, prefs: Prefs, repo: FeedRepo, maxChars: Int? = null): Quote? {
+        val plan = repo.proverbsPlan()
+        if (plan.isEmpty()) return null
+        val esv = EsvClient(app)
+        repeat(4) {
+            val idx = if (prefs.proverbOrder == "random") kotlin.random.Random.nextInt(plan.size) else prefs.proverbIndex % plan.size
+            val text = esv.text(plan[idx]).getOrNull() ?: return null
+            if (prefs.proverbOrder != "random") prefs.proverbIndex = (idx + 1) % plan.size
+            if (maxChars == null || text.length <= maxChars) return proverbQuote(app, plan[idx])
+        }
+        return null
+    }
+
+    /** Fetch the next few readings' text ahead of time so the lock screen works offline. */
+    suspend fun prefetchProverbs(app: Context, count: Int = 5) {
+        val prefs = Prefs(app)
+        if (prefs.proverbFreq == 0 || prefs.proverbOrder == "random") return
+        val esv = EsvClient(app)
+        if (!esv.hasKey()) return
+        val plan = FeedRepo(app, prefs).proverbsPlan()
+        if (plan.isEmpty()) return
+        val writer = com.tim.articlequotes.data.DevotionalWriter(app)
+        for (k in 0 until count) {
+            val chunk = plan[(prefs.proverbIndex + k) % plan.size]
+            val text = esv.text(chunk).getOrNull() ?: break
+            writer.significance(chunk, text)  // saved for the card; no-op once written or without a key
+        }
     }
 
     /** Make [q] the current quote (used by "Set as lock screen" on a chosen quote too). */
@@ -120,7 +178,7 @@ object Rotator {
             val dm = ctx.resources.displayMetrics
             val w = maxOf(dm.widthPixels, 720)
             val h = maxOf(dm.heightPixels, 1280)
-            val bmp = QuoteCardRenderer.render(q, w, h, prefs.cardStyle, prefs.textScale, showContext = prefs.showContext, position = prefs.lockPosition)
+            val bmp = QuoteCardRenderer.render(q, w, h, prefs.cardStyle, prefs.textScale, showContext = prefs.showContext, position = prefs.lockPosition, contextScale = prefs.contextScale)
             var flags = WallpaperManager.FLAG_LOCK
             if (mode == "both") flags = flags or WallpaperManager.FLAG_SYSTEM
             wm.setBitmap(bmp, null, true, flags)

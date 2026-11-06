@@ -36,6 +36,16 @@ Samsung note: the app sets the lock-screen wallpaper directly. If you use Samsun
 
 Everything above is changeable in **Settings** inside the app.
 
+## What's in 1.5
+
+- **Wisdom section:** 473 curated quotes (Stoics, Tracy & Maxwell, classic Christian writers, statesmen), each with a "why it matters" line. Built from `builder/wisdom/*.json`; only quotes with a `verifiedBy` source ship. Archaic translations are modernised, with the original kept in `original`.
+- **Proverbs section:** all 915 verses in 683 readings of 1–3 verses (`docs/feed/proverbs_plan.json`, references only). ESV text is fetched on the phone with Tim's own ESV key and cached (at most 400 verses, plus at most 30 readings in history, to stay under ESV's 500-verse limit). Cache and keys are excluded from backup.
+- **Devotionals:** tap *Devotional* on a Proverbs card. Claude Haiku 5.5 writes it (Reformed/evangelical lens; ANE context, Hebrew words, theology, application for work, leadership, father, husband, Christian life; short cross-references printed in ESV). Saved per reading; only *Refresh* pays again. Each card also gets a one-line "why it matters" (about $0.0002 each).
+- **Sections in Settings:** Wisdom and Proverbs each Off / Rarely / Sometimes / Often (0/10/25/40% of changes), Wisdom groups on/off, Proverbs in order or random.
+- **Keys (Settings → Claude API and Bible text):** Claude API key (console.anthropic.com), ESV key (api.esv.org), optional Admin key for whole-account spend. Stored with Android Keystore encryption.
+- **Budget bar:** "$X left of $200" on the Today screen, the devotional screen and Settings. Counts this app's spend; with an Admin key it uses the account's month-to-date cost report. Allowance and reset day are editable.
+- **"Why it matters" size slider** in Settings.
+
 ## What's in 1.3
 
 - **Grace window:** a scheduled quote never changes while the screen is on, or within 30 seconds (adjustable) of it turning off. Survives Android killing the app in the background.

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older. Devotionals and settings back up; API keys and ESV text never do. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="secrets.xml" />
+    <exclude domain="file" path="esv/" />
+    <exclude domain="file" path="feed/" />
+</full-backup-content>

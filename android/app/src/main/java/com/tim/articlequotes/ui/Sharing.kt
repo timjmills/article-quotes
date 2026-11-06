@@ -23,7 +23,7 @@ object Sharing {
     /** Renders the quote card at a social-friendly 4:5 size and opens the share sheet. */
     suspend fun shareQuoteImage(ctx: Context, q: Quote, prefs: Prefs) {
         val file = withContext(Dispatchers.Default) {
-            val bmp = QuoteCardRenderer.render(q, 1080, 1350, prefs.cardStyle, 1.0f, preview = true, showContext = prefs.showContext)
+            val bmp = QuoteCardRenderer.render(q, 1080, 1350, prefs.cardStyle, 1.0f, preview = true, showContext = prefs.showContext, contextScale = prefs.contextScale)
             val f = File(sharedDir(ctx), "quote.png")
             f.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
             f

@@ -98,14 +98,14 @@ class QuoteNav(
     /** More from this article and author. */
     fun moreLikeThis() {
         val q = quote ?: return
-        prefs.nudgeArticle(q.articleId, 1); prefs.nudgeAuthor(q.author, 1)
+        if (q.articleId.isNotBlank()) prefs.nudgeArticle(q.articleId, 1); if (!q.isProverb) prefs.nudgeAuthor(q.author, 1)
         say("Got it: more like this")
     }
 
     /** Less from this article and author, and move on. */
     fun lessLikeThis() {
         val q = quote ?: return
-        prefs.nudgeArticle(q.articleId, -1); prefs.nudgeAuthor(q.author, -1)
+        if (q.articleId.isNotBlank()) prefs.nudgeArticle(q.articleId, -1); if (!q.isProverb) prefs.nudgeAuthor(q.author, -1)
         say("Got it: fewer like this")
         newQuote()
     }

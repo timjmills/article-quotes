@@ -67,6 +67,21 @@ class FeedRepo(ctx: Context, private val prefs: Prefs) {
             changed++
         }
         quotesDir.listFiles()?.forEach { if (it.name.endsWith(".json") && it.name !in keep) it.delete() }
+        // Extra files: curated Wisdom quotes and the Proverbs reading plan (references only).
+        val extras = remote.optJSONObject("extras")
+        val localExtras = local?.optJSONObject("extras")
+        if (extras != null) for (k in extras.keys()) {
+            val e = extras.getJSONObject(k)
+            val f = File(root, e.getString("path"))
+            // The path comes from the downloaded manifest: never write outside the feed folder.
+            if (!f.canonicalPath.startsWith(root.canonicalPath + File.separator)) continue
+            if (f.exists() && localExtras?.optJSONObject(k)?.optString("sha") == e.optString("sha")) continue
+            val body = try { fetch(base + e.getString("path")) } catch (ex: Exception) { null }
+                ?: return@withContext SyncResult(false, "Download stopped part-way ($k). Try again.", changed)
+            val tmp = File(root, e.getString("path") + ".tmp"); tmp.writeText(body); tmp.renameTo(f)
+            changed++
+        }
+        wisdomCache = null; planCache = null
         manifestFile.writeText(remote.toString())
         cache = null
         prefs.lastSync = System.currentTimeMillis()
@@ -99,6 +114,34 @@ class FeedRepo(ctx: Context, private val prefs: Prefs) {
     }
 
     fun quotesFor(categories: Set<String>): List<Quote> = allQuotes().filter { it.category in categories }
+
+    @Volatile private var wisdomCache: List<Quote>? = null
+    @Volatile private var planCache: List<ProverbChunk>? = null
+
+    /** Curated Wisdom quotes (Stoics, Maxwell and Tracy, classic Christian, statesmen). */
+    fun wisdom(): List<Quote> {
+        wisdomCache?.let { return it }
+        val f = File(root, "wisdom.json")
+        val arr = runCatching { JSONArray(f.readText()) }.getOrNull() ?: return emptyList()
+        val out = List(arr.length()) { i ->
+            val o = arr.getJSONObject(i)
+            Quote(o.getString("id"), "", o.getString("t"), o.optString("g"), o.optString("w"), o.optString("a"), "", o.optString("x"), Quote.KIND_WISDOM)
+        }
+        wisdomCache = out
+        return out
+    }
+
+    /** The Proverbs reading plan: every verse once, 1-3 verses per reading, in book order. */
+    fun proverbsPlan(): List<ProverbChunk> {
+        planCache?.let { return it }
+        val arr = runCatching { JSONArray(File(root, "proverbs_plan.json").readText()) }.getOrNull() ?: return emptyList()
+        val out = List(arr.length()) { i ->
+            val o = arr.getJSONObject(i)
+            ProverbChunk(o.getString("id"), o.getString("ref"), o.getString("q"), o.getInt("ch"), o.getInt("v1"), o.getInt("v2"))
+        }
+        planCache = out
+        return out
+    }
 
     fun articles(categories: Set<String>? = null): List<ArticleSummary> {
         val byId = LinkedHashMap<String, ArticleSummary>()

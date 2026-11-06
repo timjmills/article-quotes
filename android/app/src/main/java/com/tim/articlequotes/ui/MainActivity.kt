@@ -247,7 +247,7 @@ fun AppRoot() {
             when {
                 article != null -> {
                     BackHandler { openArticle = null }
-                    ArticleScreen(article, repo, prefs, onBack = { openArticle = null })
+                    DetailScreen(article, repo, prefs, onBack = { openArticle = null }, onOpenSettings = { openArticle = null; tab = MainActivity.TAB_SETTINGS })
                 }
                 fullscreen -> {
                     BackHandler { fullscreen = false }
@@ -313,6 +313,14 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
     val stale by produceState<Staleness?>(null, tick, nav.hasData) {
         value = if (nav.hasData) withContext(Dispatchers.IO) { Staleness.of(repo, prefs) } else null
     }
+    val ctx = LocalContext.current
+    // Shown once a Claude key is saved: how much of the monthly API allowance is left.
+    val budget by produceState<com.tim.articlequotes.data.BudgetView?>(null, tick) {
+        value = withContext(Dispatchers.IO) {
+            if (com.tim.articlequotes.data.SecretStore(ctx).has(com.tim.articlequotes.data.SecretStore.CLAUDE))
+                com.tim.articlequotes.data.Budget(ctx).view() else null
+        }
+    }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)) {
         Text("Article Quotes", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
@@ -320,6 +328,7 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
             stale?.summary ?: "Quotes from your article archive",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        budget?.let { BudgetMeter(it, Modifier.padding(top = 10.dp)) }
         Spacer(Modifier.height(12.dp))
 
         UpdateCard(prefs, compact = true)
@@ -351,7 +360,7 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
         } else {
             val style = prefs.cardStyle; val ts = prefs.textScale; val showCtx = prefs.showContext
             val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, q.id, style, ts, showCtx) {
-                value = withContext(Dispatchers.Default) { QuoteCardRenderer.preview(q, style, ts, 720, showCtx).asImageBitmap() }
+                value = withContext(Dispatchers.Default) { QuoteCardRenderer.preview(q, style, ts, 720, showCtx, prefs.contextScale).asImageBitmap() }
             }
             val swipeThreshold = with(LocalDensity.current) { 72.dp.toPx() }
             val maxCard = (LocalConfiguration.current.screenHeightDp * 0.48f).dp
@@ -376,11 +385,11 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
             if (q.context.isNotBlank()) {
                 Spacer(Modifier.height(8.dp))
                 Text("Why it matters", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                Text(q.context, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 2.dp))
+                Text(q.context, style = MaterialTheme.typography.bodyMedium.let { it.copy(fontSize = it.fontSize * prefs.contextScale, lineHeight = it.lineHeight * prefs.contextScale) }, modifier = Modifier.padding(top = 2.dp))
             }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = { onOpen(q.articleId) }) { Text("Read summary") }
+                if (q.articleId.isNotBlank()) Button(onClick = { onOpen(q.articleId) }) { Text(if (q.isProverb) "Devotional" else "Read summary") }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { nav.lessLikeThis() }) { Icon(Icons.Default.ThumbUp, "Less like this", Modifier.rotate(180f)) }
                 IconButton(onClick = { nav.moreLikeThis() }) { Icon(Icons.Default.ThumbUp, "More like this") }
@@ -520,7 +529,7 @@ fun FullScreenQuote(
         val wPx = constraints.maxWidth; val hPx = constraints.maxHeight
         val style = prefs.cardStyle; val showCtx = prefs.showContext
         val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, q?.id, style, textScale, showCtx, wPx, hPx) {
-            value = q?.let { withContext(Dispatchers.Default) { QuoteCardRenderer.render(it, wPx, hPx, style, textScale, preview = !matchLockScreen, showContext = showCtx, position = prefs.lockPosition).asImageBitmap() } }
+            value = q?.let { withContext(Dispatchers.Default) { QuoteCardRenderer.render(it, wPx, hPx, style, textScale, preview = !matchLockScreen, showContext = showCtx, position = prefs.lockPosition, contextScale = prefs.contextScale).asImageBitmap() } }
         }
         val swipeThreshold = with(LocalDensity.current) { 72.dp.toPx() }
         Box(
@@ -550,7 +559,7 @@ fun FullScreenQuote(
                 TextButton(onClick = { setScale(textScale + 0.1f) }, enabled = textScale < 2.19f) { Text("A+", color = Color.White, fontSize = 22.sp) }
                 IconButton(onClick = { nav.toggleFavorite() }) { Icon(if (nav.fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (nav.fav) "Saved, tap to remove" else "Save", tint = Color(0xFFE0B04A)) }
                 IconButton(onClick = { nav.shareImage() }) { Icon(Icons.Default.Share, "Share as image", tint = Color.White) }
-                IconButton(onClick = { q?.let { onOpen(it.articleId) } }) { Icon(Icons.Default.Info, "Read summary", tint = Color.White) }
+                if (q != null && q.articleId.isNotBlank()) IconButton(onClick = { onOpen(q.articleId) }) { Icon(Icons.Default.Info, if (q.isProverb) "Devotional" else "Read summary", tint = Color.White) }
                 IconButton(onClick = { nav.next() }, enabled = !nav.busy) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, if (nav.hasNext) "Next quote" else "New quote", tint = Color.White) }
             }
         }
@@ -734,7 +743,7 @@ private fun SavedQuoteCard(q: Quote, prefs: Prefs, onOpen: (String) -> Unit, onC
             if (q.context.isNotBlank()) Text(q.context, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
             Text("\u2014 ${q.author} \u00b7 ${q.title}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { onOpen(q.articleId) }) { Text("Summary") }
+                if (q.articleId.isNotBlank()) TextButton(onClick = { onOpen(q.articleId) }) { Text(if (q.isProverb) "Devotional" else "Summary") }
                 TextButton(onClick = { scope.launch { Rotator.show(ctx, q, notify = false) } }) { Icon(Icons.Default.Lock, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Lock screen") }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { scope.launch { Sharing.shareQuoteImage(ctx, q, prefs) } }) { Icon(Icons.Default.Share, "Share as image") }
@@ -896,6 +905,7 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
     var unmetered by remember { mutableStateOf(prefs.unmeteredOnly) }
     var grace by remember { mutableIntStateOf(prefs.graceSeconds) }
     var position by remember { mutableStateOf(prefs.lockPosition) }
+    var ctxScale by remember { mutableFloatStateOf(prefs.contextScale) }
     var sticky by remember { mutableStateOf(prefs.stickyNotification) }
     var readerMin by remember { mutableIntStateOf(prefs.readerMinutes) }
     var readerIcon by remember {
@@ -999,6 +1009,8 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
         Text("Longest quote on the lock screen: $maxChars characters", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
         Slider(maxChars.toFloat(), { maxChars = (it / 20).toInt() * 20 }, onValueChangeFinished = { prefs.maxWallpaperChars = maxChars }, valueRange = 120f..600f)
 
+        SectionsSettings(prefs, repo)
+
         SectionHeader("Article types")
         Text("Switch off any type you don't want, or choose how often each one comes up.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Categories.ALL.forEach { c ->
@@ -1043,6 +1055,13 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
             }
             Switch(weekly, { weekly = it; prefs.weeklyReviewOn = it })
         }
+
+        ApiSettings()
+
+        SectionHeader("\"Why it matters\" size")
+        Text("Size of the one-line explanation under each quote, on the lock screen and in the app.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Slider(ctxScale, { ctxScale = it }, onValueChangeFinished = { prefs.contextScale = ctxScale; reapplyWallpaper() }, valueRange = 0.8f..2.0f)
+        Text("Leaders who listen first earn the trust to lead.", fontSize = 15.sp * scale * ctxScale, lineHeight = 20.sp * scale * ctxScale, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         SectionHeader("Text size")
         Text("Applies to the app, full screen and the lock-screen card. In full screen you can also use A\u2212 / A+.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
