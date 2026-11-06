@@ -32,6 +32,9 @@ object Rotator {
         if (grace <= 0L) return 0L
         val pm = ctx.getSystemService(Context.POWER_SERVICE) as PowerManager
         if (pm.isInteractive) return SCREEN_ON
+        // Reader open (or waiting behind a dark screen): keep its quote until it is closed.
+        val seen = prefs.readerSeenAt
+        if (seen > 0 && now - seen < com.tim.articlequotes.ui.ReaderActivity.KEEP_WHILE_DARK_MS) return SCREEN_ON
         var off = prefs.lastScreenOff
         // Screen events are only heard while the app is alive. If the last recorded screen-off
         // predates this process, or a screen-on came after it, we can't know when the screen

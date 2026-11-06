@@ -165,7 +165,7 @@ class Prefs(ctx: Context) {
     // ---- screen grace: don't swap the quote right after the screen goes dark ----
     /** Seconds after the screen turns off during which the quote stays put. 0 = off. */
     var graceSeconds: Int
-        get() = sp.getInt("graceSeconds", 30)
+        get() = sp.getInt("graceSeconds", 120)
         set(v) = sp.edit().putInt("graceSeconds", v.coerceIn(0, 600)).apply()
 
     /** When the app process last started; screen events before this were not observed. */
@@ -177,6 +177,11 @@ class Prefs(ctx: Context) {
     var pendingChange: Boolean
         get() = sp.getBoolean("pendingChange", false)
         set(v) = sp.edit().putBoolean("pendingChange", v).apply()
+
+    /** When the lock-screen reader was last open (0 = closed). The quote never changes under it. */
+    var readerSeenAt: Long
+        get() = sp.getLong("readerSeenAt", 0L)
+        set(v) = sp.edit().putLong("readerSeenAt", v).apply()
 
     var lastScreenOff: Long
         get() = sp.getLong("lastScreenOff", 0L)

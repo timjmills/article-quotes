@@ -57,6 +57,7 @@ class ReaderActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         keepScreenOn()
+        Prefs(this).readerSeenAt = System.currentTimeMillis()
     }
 
     override fun onUserInteraction() {
@@ -75,12 +76,26 @@ class ReaderActivity : ComponentActivity() {
         reopened.intValue++  // back to the current quote, closing any open summary
     }
 
+    private var stoppedAt = 0L
+
+    override fun onStart() {
+        super.onStart()
+        // The reader survives the screen going dark, so waking the phone brings the same quote
+        // back. Only after a long time away does it step aside for the normal lock screen.
+        if (stoppedAt > 0 && System.currentTimeMillis() - stoppedAt > KEEP_WHILE_DARK_MS) { finish(); return }
+        stoppedAt = 0
+        Prefs(this).readerSeenAt = System.currentTimeMillis()
+    }
+
     override fun onStop() {
         super.onStop()
-        // Once the screen goes dark, close so the next wake shows the real lock screen.
-        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
-        val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
-        if (!isChangingConfigurations && (km.isKeyguardLocked || !pm.isInteractive)) finish()
+        stoppedAt = System.currentTimeMillis()
+        Prefs(this).readerSeenAt = stoppedAt
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isFinishing) Prefs(this).readerSeenAt = 0L
     }
 
     /** Hold the screen on while reading; let it sleep after [Prefs.readerMinutes] without a touch. */
@@ -93,6 +108,9 @@ class ReaderActivity : ComponentActivity() {
     companion object {
         /** Bumped when the reader is re-opened while already alive. */
         val reopened = androidx.compose.runtime.mutableIntStateOf(0)
+
+        /** How long the reader stays waiting behind a dark screen. */
+        const val KEEP_WHILE_DARK_MS = 30 * 60_000L
 
         fun intent(ctx: Context): Intent = Intent(ctx, ReaderActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
