@@ -124,7 +124,7 @@ fun ApiSettings() {
 
     Title("Claude API and Bible text")
     Hint("Keys are stored encrypted on this phone only and never backed up or shared.")
-    KeyField("Claude API key", "From console.anthropic.com. Used to write devotionals.", SecretStore.CLAUDE, secrets) { tick++ }
+    KeyField("Claude API key", "From console.anthropic.com. Used to write devotionals and Bible studies.", SecretStore.CLAUDE, secrets) { tick++ }
     KeyField("ESV API key", "Free from api.esv.org (create a personal app). Used for the Proverbs text.", SecretStore.ESV, secrets) { tick++ }
     KeyField("Admin API key (optional)", "Only for the whole account's spending below. It can manage your organization, so add it only if you want that.", SecretStore.ADMIN, secrets) { tick++ }
 
@@ -162,8 +162,9 @@ fun ApiSettings() {
         }
     }
     val saved = remember(tick) { DevotionalStore(ctx).count() }
+    val studies = remember(tick) { DevotionalStore(ctx).studyCount() }
     val esvVerses = remember(tick) { EsvClient(ctx).cachedVerseCount() }
-    Hint("Saved devotionals: $saved · ESV verses on this phone: $esvVerses of ${EsvClient.MAX_VERSES} allowed")
+    Hint("Saved devotionals: $saved · Bible studies: $studies · ESV verses on this phone: $esvVerses of ${EsvClient.MAX_VERSES} allowed")
 }
 
 @Composable

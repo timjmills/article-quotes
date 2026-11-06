@@ -85,6 +85,70 @@ data class Devotional(
     }
 }
 
+/** A short Bible study on the theme of a Wisdom quote (Stoic, leadership, Christian or statesman). */
+data class Study(
+    val title: String,
+    val theme: String,
+    val quoteInContext: String,
+    val whatScriptureSays: String,
+    val keyPassages: List<CrossRef>,
+    val keyWords: List<KeyWord>,
+    val agreement: String,
+    val difference: String,
+    val biblicalTheology: String,
+    val systematicTheology: String,
+    val work: String,
+    val leadership: String,
+    val father: String,
+    val husband: String,
+    val christianLife: String,
+    val questions: List<String>,
+    val takeaway: String,
+    val model: String = "",
+    val createdAt: Long = 0,
+    val inputTokens: Long = 0,
+    val outputTokens: Long = 0,
+    val costUsd: Double = 0.0,
+    val promptVersion: Int = 0,
+) {
+    fun toJson(): JSONObject = JSONObject().apply {
+        put("title", title); put("theme", theme); put("quoteInContext", quoteInContext); put("whatScriptureSays", whatScriptureSays)
+        put("keyPassages", JSONArray().apply { keyPassages.forEach { put(JSONObject().put("ref", it.ref).put("why", it.why)) } })
+        put("keyWords", JSONArray().apply {
+            keyWords.forEach { put(JSONObject().put("original", it.hebrew).put("transliteration", it.transliteration).put("gloss", it.gloss).put("note", it.note)) }
+        })
+        put("agreement", agreement); put("difference", difference)
+        put("biblicalTheology", biblicalTheology); put("systematicTheology", systematicTheology)
+        put("application", JSONObject().put("work", work).put("leadership", leadership).put("father", father).put("husband", husband).put("christianLife", christianLife))
+        put("questions", JSONArray(questions)); put("takeaway", takeaway)
+        put("model", model); put("createdAt", createdAt); put("inputTokens", inputTokens); put("outputTokens", outputTokens)
+        put("costUsd", costUsd); put("promptVersion", promptVersion)
+    }
+
+    companion object {
+        fun fromJson(o: JSONObject): Study {
+            val app = o.optJSONObject("application") ?: JSONObject()
+            val kp = o.optJSONArray("keyPassages") ?: JSONArray()
+            val kw = o.optJSONArray("keyWords") ?: JSONArray()
+            val qs = o.optJSONArray("questions") ?: JSONArray()
+            return Study(
+                title = o.optString("title"), theme = o.optString("theme"), quoteInContext = o.optString("quoteInContext"),
+                whatScriptureSays = o.optString("whatScriptureSays"),
+                keyPassages = List(kp.length()) { i -> kp.getJSONObject(i).let { CrossRef(it.optString("ref"), it.optString("why")) } },
+                keyWords = List(kw.length()) { i -> kw.getJSONObject(i).let { KeyWord(it.optString("original"), it.optString("transliteration"), it.optString("gloss"), it.optString("note")) } },
+                agreement = o.optString("agreement"), difference = o.optString("difference"),
+                biblicalTheology = o.optString("biblicalTheology"), systematicTheology = o.optString("systematicTheology"),
+                work = app.optString("work"), leadership = app.optString("leadership"), father = app.optString("father"),
+                husband = app.optString("husband"), christianLife = app.optString("christianLife"),
+                questions = List(qs.length()) { qs.optString(it) }.filter { it.isNotBlank() },
+                takeaway = o.optString("takeaway"),
+                model = o.optString("model"), createdAt = o.optLong("createdAt"), inputTokens = o.optLong("inputTokens"),
+                outputTokens = o.optLong("outputTokens"), costUsd = o.optDouble("costUsd", 0.0), promptVersion = o.optInt("promptVersion", 0),
+            )
+        }
+    }
+}
+
 /** Saved devotionals: one file per reading, kept until Refresh. Earlier versions are kept as .prev files. */
 class DevotionalStore(ctx: Context) {
     private val dir = File(ctx.applicationContext.filesDir, "devotionals").apply { mkdirs() }
@@ -98,7 +162,16 @@ class DevotionalStore(ctx: Context) {
         cur.writeText(d.toJson().toString(1))
     }
 
-    fun count(): Int = dir.listFiles()?.count { it.name.endsWith(".json") } ?: 0
+    fun count(): Int = dir.listFiles()?.count { it.name.endsWith(".json") && !it.name.startsWith("study-") } ?: 0
+    fun studyCount(): Int = dir.listFiles()?.count { it.name.endsWith(".json") && it.name.startsWith("study-") } ?: 0
+
+    fun getStudy(quoteId: String): Study? = f("study-$quoteId").takeIf { it.exists() }?.let { runCatching { Study.fromJson(JSONObject(it.readText())) }.getOrNull() }
+
+    fun putStudy(quoteId: String, st: Study) {
+        val cur = f("study-$quoteId")
+        if (cur.exists()) cur.copyTo(File(dir, "study-$quoteId.${cur.lastModified()}.prev"), overwrite = true)
+        cur.writeText(st.toJson().toString(1))
+    }
 
     /** The one-line "why it matters" for a reading's card (written before any full devotional). */
     fun significance(id: String): String? = File(dir, "$id.sig.txt").takeIf { it.exists() }?.readText()?.takeIf { it.isNotBlank() }
@@ -124,22 +197,47 @@ class DevotionalWriter(private val ctx: Context) {
         }
     }
 
-    private suspend fun writeNow(chunk: ProverbChunk, verseText: String): Result<Devotional> = withContext(Dispatchers.IO) {
+    private suspend fun writeNow(chunk: ProverbChunk, verseText: String): Result<Devotional> =
+        ask(DevotionalPrompt.SYSTEM, DevotionalPrompt.schema(), "${chunk.ref} (ESV)\n\n$verseText", "devotional").map { a ->
+            Devotional.fromJson(a.json, chunk.ref).copy(
+                model = DevotionalPrompt.MODEL, createdAt = System.currentTimeMillis(),
+                inputTokens = a.inTok, outputTokens = a.outTok, costUsd = a.cost, promptVersion = DevotionalPrompt.VERSION,
+            ).also { store.put(chunk.id, it) }
+        }
+
+    /** A Bible study on the theme of a Wisdom quote. Written once per quote; Refresh rewrites it. */
+    suspend fun writeStudy(q: Quote): Result<Study> {
+        val startedAt = System.currentTimeMillis()
+        return locks.getOrPut("study-" + q.id) { Mutex() }.withLock {
+            store.getStudy(q.id)?.takeIf { it.createdAt >= startedAt }?.let { Result.success(it) }
+                ?: ask(StudyPrompt.SYSTEM, StudyPrompt.schema(), StudyPrompt.userMessage(q), "Bible study").map { a ->
+                    Study.fromJson(a.json).copy(
+                        model = DevotionalPrompt.MODEL, createdAt = System.currentTimeMillis(),
+                        inputTokens = a.inTok, outputTokens = a.outTok, costUsd = a.cost, promptVersion = StudyPrompt.VERSION,
+                    ).also { store.putStudy(q.id, it) }
+                }
+        }
+    }
+
+    private class Answer(val json: JSONObject, val inTok: Long, val outTok: Long, val cost: Double)
+
+    /** One structured-output call to Haiku. Records the cost whatever the outcome. */
+    private suspend fun ask(system: String, schema: JsonOutputFormat.Schema, user: String, what: String): Result<Answer> = withContext(Dispatchers.IO) {
         val key = secrets.get(SecretStore.CLAUDE)
-            ?: return@withContext Result.failure(IllegalStateException("Add your Claude API key in Settings to write devotionals."))
+            ?: return@withContext Result.failure(IllegalStateException("Add your Claude API key in Settings to write the $what."))
         val client = AnthropicOkHttpClient.builder().apiKey(key).timeout(Duration.ofSeconds(90)).maxRetries(2).build()
         try {
             val params = MessageCreateParams.builder()
                 .model(DevotionalPrompt.MODEL)
                 .maxTokens(8000L)
-                .system(DevotionalPrompt.SYSTEM)
+                .system(system)
                 .outputConfig(
                     OutputConfig.builder()
                         .effort(OutputConfig.Effort.MEDIUM)
-                        .format(JsonOutputFormat.builder().schema(DevotionalPrompt.schema()).build())
+                        .format(JsonOutputFormat.builder().schema(schema).build())
                         .build(),
                 )
-                .addUserMessage("${chunk.ref} (ESV)\n\n$verseText")
+                .addUserMessage(user)
                 .build()
             val msg = client.messages().create(params)
             val usage = msg.usage()
@@ -149,15 +247,9 @@ class DevotionalWriter(private val ctx: Context) {
             budget.record(cost)
             val stop = msg.stopReason().orElse(null)
             if (stop == StopReason.REFUSAL) return@withContext Result.failure(IllegalStateException("Claude declined to write this one. Try Refresh later."))
-            if (stop == StopReason.MAX_TOKENS) return@withContext Result.failure(IllegalStateException("The devotional ran too long and was cut off. Try Refresh."))
+            if (stop == StopReason.MAX_TOKENS) return@withContext Result.failure(IllegalStateException("The $what ran too long and was cut off. Try Refresh."))
             val text = msg.content().mapNotNull { b -> b.text().orElse(null)?.text() }.joinToString("")
-            val raw = JSONObject(text)
-            val d = Devotional.fromJson(raw, chunk.ref).copy(
-                model = DevotionalPrompt.MODEL, createdAt = System.currentTimeMillis(),
-                inputTokens = inTok, outputTokens = outTok, costUsd = cost, promptVersion = DevotionalPrompt.VERSION,
-            )
-            store.put(chunk.id, d)
-            Result.success(d)
+            Result.success(Answer(JSONObject(text), inTok, outTok, cost))
         } catch (e: UnauthorizedException) {
             Result.failure(IllegalStateException("The Claude API key was not accepted. Check it in Settings."))
         } catch (e: RateLimitException) {
@@ -167,7 +259,7 @@ class DevotionalWriter(private val ctx: Context) {
         } catch (e: AnthropicIoException) {
             Result.failure(IllegalStateException("No connection to Claude. Check your internet and try again."))
         } catch (e: Exception) {
-            Result.failure(IllegalStateException("Something went wrong writing the devotional: ${e.message ?: e.javaClass.simpleName}"))
+            Result.failure(IllegalStateException("Something went wrong writing the $what: ${e.message ?: e.javaClass.simpleName}"))
         } finally {
             client.close()
         }

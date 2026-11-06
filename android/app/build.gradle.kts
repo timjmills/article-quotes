@@ -24,8 +24,8 @@ android {
         applicationId = "com.tim.articlequotes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.5"
+        versionCode = 8
+        versionName = "1.6"
         buildConfigField("String", "DEFAULT_FEED_URL", "\"https://timjmills.github.io/article-quotes/feed/\"")
     }
 

@@ -36,6 +36,10 @@ Samsung note: the app sets the lock-screen wallpaper directly. If you use Samsun
 
 Everything above is changeable in **Settings** inside the app.
 
+## What's in 1.6
+
+- **Bible study for Wisdom quotes:** a *Bible study* button on every Wisdom card (Today, full screen, lock-screen reader, Saved). Pressing it has Claude Haiku write a short study on the quote's theme: the quote in its setting, what Scripture says (key passages printed in ESV), Hebrew/Greek words, where Scripture agrees and where it goes further, biblical and systematic theology, application, and questions to think about. Saved per quote; *Refresh* rewrites it.
+
 ## What's in 1.5
 
 - **Wisdom section:** 473 curated quotes (Stoics, Tracy & Maxwell, classic Christian writers, statesmen), each with a "why it matters" line. Built from `builder/wisdom/*.json`; only quotes with a `verifiedBy` source ship. Archaic translations are modernised, with the original kept in `original`.

@@ -389,7 +389,7 @@ fun TodayScreen(nav: QuoteNav, prefs: Prefs, repo: FeedRepo, onOpen: (String) ->
             }
             Spacer(Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (q.articleId.isNotBlank()) Button(onClick = { onOpen(q.articleId) }) { Text(if (q.isProverb) "Devotional" else "Read summary") }
+                if (q.detailId.isNotBlank()) Button(onClick = { onOpen(q.detailId) }) { Text(q.detailLabel) }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { nav.lessLikeThis() }) { Icon(Icons.Default.ThumbUp, "Less like this", Modifier.rotate(180f)) }
                 IconButton(onClick = { nav.moreLikeThis() }) { Icon(Icons.Default.ThumbUp, "More like this") }
@@ -559,7 +559,7 @@ fun FullScreenQuote(
                 TextButton(onClick = { setScale(textScale + 0.1f) }, enabled = textScale < 2.19f) { Text("A+", color = Color.White, fontSize = 22.sp) }
                 IconButton(onClick = { nav.toggleFavorite() }) { Icon(if (nav.fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (nav.fav) "Saved, tap to remove" else "Save", tint = Color(0xFFE0B04A)) }
                 IconButton(onClick = { nav.shareImage() }) { Icon(Icons.Default.Share, "Share as image", tint = Color.White) }
-                if (q != null && q.articleId.isNotBlank()) IconButton(onClick = { onOpen(q.articleId) }) { Icon(Icons.Default.Info, if (q.isProverb) "Devotional" else "Read summary", tint = Color.White) }
+                if (q != null && q.detailId.isNotBlank()) IconButton(onClick = { onOpen(q.detailId) }) { Icon(Icons.Default.Info, q.detailLabel, tint = Color.White) }
                 IconButton(onClick = { nav.next() }, enabled = !nav.busy) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, if (nav.hasNext) "Next quote" else "New quote", tint = Color.White) }
             }
         }
@@ -743,7 +743,7 @@ private fun SavedQuoteCard(q: Quote, prefs: Prefs, onOpen: (String) -> Unit, onC
             if (q.context.isNotBlank()) Text(q.context, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
             Text("\u2014 ${q.author} \u00b7 ${q.title}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (q.articleId.isNotBlank()) TextButton(onClick = { onOpen(q.articleId) }) { Text(if (q.isProverb) "Devotional" else "Summary") }
+                if (q.detailId.isNotBlank()) TextButton(onClick = { onOpen(q.detailId) }) { Text(if (q.isArticle) "Summary" else q.detailLabel) }
                 TextButton(onClick = { scope.launch { Rotator.show(ctx, q, notify = false) } }) { Icon(Icons.Default.Lock, null, Modifier.size(16.dp)); Spacer(Modifier.width(4.dp)); Text("Lock screen") }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { scope.launch { Sharing.shareQuoteImage(ctx, q, prefs) } }) { Icon(Icons.Default.Share, "Share as image") }

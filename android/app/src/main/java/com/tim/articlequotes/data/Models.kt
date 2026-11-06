@@ -19,6 +19,9 @@ data class Quote(
     val isArticle get() = kind == KIND_ARTICLE
     val isProverb get() = kind == KIND_PROVERB
     val isWisdom get() = kind == KIND_WISDOM
+    /** What the card's detail button opens: the article, the Proverbs devotional, or a Wisdom Bible study. */
+    val detailId: String get() = if (isWisdom) id else articleId
+    val detailLabel: String get() = when { isProverb -> "Devotional"; isWisdom -> "Bible study"; else -> "Read summary" }
 
     fun toJson(): JSONObject = JSONObject()
         .put("id", id).put("aid", articleId).put("t", text).put("c", category)

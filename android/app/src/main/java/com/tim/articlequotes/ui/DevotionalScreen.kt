@@ -56,17 +56,23 @@ import com.tim.articlequotes.data.DevotionalWriter
 import com.tim.articlequotes.data.EsvClient
 import com.tim.articlequotes.data.FeedRepo
 import com.tim.articlequotes.data.Prefs
+import com.tim.articlequotes.data.Quote
+import com.tim.articlequotes.data.Study
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-/** Opens the right detail screen: a devotional for a Proverbs reading, else the article summary. */
+/** Opens the right detail screen: a devotional for Proverbs, a Bible study for Wisdom, else the article summary. */
 @Composable
 fun DetailScreen(
     id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit,
     openUrl: ((String) -> Unit)? = null, onOpenSettings: (() -> Unit)? = null,
 ) {
-    if (id.startsWith("prov-")) DevotionalScreen(id, repo, onBack, onOpenSettings) else ArticleScreen(id, repo, prefs, onBack, openUrl)
+    when {
+        id.startsWith("prov-") -> DevotionalScreen(id, repo, onBack, onOpenSettings)
+        id.startsWith("w-") -> StudyScreen(id, repo, prefs, onBack, onOpenSettings)
+        else -> ArticleScreen(id, repo, prefs, onBack, openUrl)
+    }
 }
 
 /**
@@ -170,6 +176,154 @@ fun DevotionalScreen(id: String, repo: FeedRepo, onBack: () -> Unit, onOpenSetti
         confirmButton = { TextButton(onClick = { confirmRefresh = false; generate() }) { Text("Refresh") } },
         dismissButton = { TextButton(onClick = { confirmRefresh = false }) { Text("Cancel") } },
     )
+}
+
+/**
+ * A Bible study on the theme of a Wisdom quote. Opening it (the "Bible study" button) writes it
+ * with Claude Haiku and saves it with the quote; later opens are free until Refresh.
+ */
+@Composable
+fun StudyScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit, onOpenSettings: (() -> Unit)?) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val quote: Quote? = remember(id) {
+        repo.wisdom().firstOrNull { it.id == id }
+            ?: prefs.favorites.firstOrNull { it.id == id }
+            ?: prefs.history.firstOrNull { it.id == id }
+    }
+    val store = remember { DevotionalStore(ctx) }
+    val writer = remember { DevotionalWriter(ctx) }
+    var study by remember { mutableStateOf(store.getStudy(id)) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf("") }
+    var confirmRefresh by remember { mutableStateOf(false) }
+    var budget by remember { mutableStateOf<BudgetView?>(null) }
+
+    fun generate() {
+        val q = quote ?: return
+        busy = true; error = ""
+        scope.launch {
+            writer.writeStudy(q).onSuccess { study = it }.onFailure { error = it.message ?: "Couldn't write the Bible study." }
+            busy = false
+            budget = Budget(ctx).view()
+        }
+    }
+
+    LaunchedEffect(id) {
+        budget = Budget(ctx).view()
+        if (study == null && quote != null && writer.hasKey()) generate()
+    }
+
+    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
+            Text("Bible study", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+            val s = study
+            if (s != null && !busy && quote != null) {
+                IconButton(onClick = { confirmRefresh = true }) { Icon(Icons.Default.Refresh, "Write a new Bible study") }
+                IconButton(onClick = { shareStudy(ctx, quote, s) }) { Icon(Icons.Default.Share, "Share Bible study") }
+            }
+        }
+        budget?.let { BudgetMeter(it, Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp)) }
+        if (quote == null) {
+            Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) { Text("This quote isn't in the feed any more. Update the feed in Settings.") }
+            return@Column
+        }
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).navigationBarsPadding()) {
+            Text("“${quote.text}”", fontFamily = FontFamily.Serif, style = MaterialTheme.typography.titleMedium)
+            Text(
+                listOf(quote.author, quote.title).filter { it.isNotBlank() }.joinToString(", "),
+                style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp),
+            )
+            val s = study
+            when {
+                busy -> Row(Modifier.padding(vertical = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Writing your Bible study… this takes about 10–20 seconds.", style = MaterialTheme.typography.bodyMedium)
+                }
+                s != null -> StudyBody(s)
+                !writer.hasKey() -> Card(Modifier.padding(top = 20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("Add your Claude API key to write Bible studies", style = MaterialTheme.typography.titleSmall)
+                        Text("Settings → Claude API. Each study costs well under a tenth of a cent and is saved with the quote.", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+                        if (onOpenSettings != null) TextButton(onClick = onOpenSettings) { Text("Open Settings") }
+                    }
+                }
+                else -> Button(onClick = { generate() }, modifier = Modifier.padding(top = 20.dp)) { Text("Write Bible study") }
+            }
+            if (error.isNotBlank()) Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 12.dp))
+            if (s != null) {
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    "Written by Claude Haiku on " + DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(s.createdAt)) + " · cost " + Budget.money(s.costUsd),
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(32.dp))
+        }
+    }
+
+    if (confirmRefresh) AlertDialog(
+        onDismissRequest = { confirmRefresh = false },
+        title = { Text("Write a new Bible study?") },
+        text = { Text("This replaces the saved one (the old one is kept on the phone) and costs about a twentieth of a cent.") },
+        confirmButton = { TextButton(onClick = { confirmRefresh = false; generate() }) { Text("Refresh") } },
+        dismissButton = { TextButton(onClick = { confirmRefresh = false }) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun StudyBody(s: Study) {
+    Text(s.title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 20.dp))
+    if (s.theme.isNotBlank()) Text(s.theme, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+    if (s.takeaway.isNotBlank()) Text(s.takeaway, fontStyle = FontStyle.Italic, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 6.dp))
+    Part("The quote in its setting", s.quoteInContext)
+    Part("What Scripture says", s.whatScriptureSays)
+    if (s.keyPassages.isNotEmpty()) CrossRefs(s.keyPassages)
+    if (s.keyWords.isNotEmpty()) {
+        Header("Key Hebrew and Greek words")
+        s.keyWords.forEach { k ->
+            Column(Modifier.padding(vertical = 4.dp)) {
+                Text("${k.hebrew}  ${k.transliteration} — ${k.gloss}", style = MaterialTheme.typography.titleSmall)
+                Text(k.note, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+    Part("Where Scripture agrees", s.agreement)
+    Part("Where Scripture goes further", s.difference)
+    Part("Across the Bible", s.biblicalTheology)
+    Part("Doctrine", s.systematicTheology)
+    Header("For your life")
+    listOf("At work" to s.work, "As a leader" to s.leadership, "As a father" to s.father, "As a husband" to s.husband, "As a Christian" to s.christianLife)
+        .filter { it.second.isNotBlank() }
+        .forEach { (label, text) ->
+            Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    if (s.questions.isNotEmpty()) {
+        Header("To think about")
+        s.questions.forEachIndexed { i, q -> Text("${i + 1}. $q", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(vertical = 3.dp)) }
+    }
+}
+
+private fun shareStudy(ctx: android.content.Context, q: Quote, s: Study) {
+    val text = buildString {
+        append("“").append(q.text).append("” — ").append(q.author).append("\n\n")
+        append(s.title).append("\n").append(s.takeaway).append("\n\n")
+        append("The quote in its setting: ").append(s.quoteInContext).append("\n\n")
+        append("What Scripture says: ").append(s.whatScriptureSays).append("\n")
+        s.keyPassages.forEach { append("• ").append(it.ref).append(" — ").append(it.why).append("\n") }
+        append("\nWhere Scripture agrees: ").append(s.agreement)
+        append("\n\nWhere Scripture goes further: ").append(s.difference)
+        append("\n\nAcross the Bible: ").append(s.biblicalTheology).append("\n\nDoctrine: ").append(s.systematicTheology)
+        append("\n\nAt work: ").append(s.work).append("\nAs a leader: ").append(s.leadership).append("\nAs a father: ").append(s.father)
+        append("\nAs a husband: ").append(s.husband).append("\nAs a Christian: ").append(s.christianLife)
+        if (s.questions.isNotEmpty()) { append("\n\nTo think about:\n"); s.questions.forEachIndexed { i, x -> append(i + 1).append(". ").append(x).append("\n") } }
+    }
+    ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), "Share Bible study").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }
 
 @Composable
