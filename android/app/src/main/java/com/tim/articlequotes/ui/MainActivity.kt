@@ -185,6 +185,12 @@ private val Scheme = darkColorScheme(
     outline = Color(0xFF4A505C),
 )
 
+/** The app's theme, shared with the lock-screen reader. */
+@Composable
+fun ArticleQuotesTheme(textScale: Float, content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = Scheme, typography = remember(textScale) { scaledTypography(textScale) }, content = content)
+}
+
 private fun scaledTypography(s: Float): Typography {
     val b = Typography()
     fun TextStyle.sc() = copy(fontSize = fontSize * s, lineHeight = if (lineHeight.isSpecified) lineHeight * s else lineHeight)
@@ -488,6 +494,9 @@ fun UpdateCard(prefs: Prefs, compact: Boolean) {
 fun FullScreenQuote(
     nav: QuoteNav, prefs: Prefs, textScale: Float,
     onTextScale: (Float) -> Unit, onOpen: (String) -> Unit, onClose: () -> Unit,
+    closeHint: String = "Close full screen",
+    /** Draw the quote exactly where the lock-screen wallpaper puts it (used by the lock-screen reader). */
+    matchLockScreen: Boolean = false,
 ) {
     val ctx = LocalContext.current
     val view = LocalView.current
@@ -511,7 +520,7 @@ fun FullScreenQuote(
         val wPx = constraints.maxWidth; val hPx = constraints.maxHeight
         val style = prefs.cardStyle; val showCtx = prefs.showContext
         val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, q?.id, style, textScale, showCtx, wPx, hPx) {
-            value = q?.let { withContext(Dispatchers.Default) { QuoteCardRenderer.render(it, wPx, hPx, style, textScale, preview = true, showContext = showCtx).asImageBitmap() } }
+            value = q?.let { withContext(Dispatchers.Default) { QuoteCardRenderer.render(it, wPx, hPx, style, textScale, preview = !matchLockScreen, showContext = showCtx, position = prefs.lockPosition).asImageBitmap() } }
         }
         val swipeThreshold = with(LocalDensity.current) { 72.dp.toPx() }
         Box(
@@ -524,7 +533,7 @@ fun FullScreenQuote(
         }
         if (controls) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close full screen", tint = Color.White) }
+                IconButton(onClick = onClose) { Icon(Icons.Default.Close, closeHint, tint = Color.White) }
                 if (nav.histSize > 0) Text("${nav.histIndex + 1} of ${nav.histSize}", color = Color(0xCCFFFFFF), style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.weight(1f))
                 if (nav.toast.isNotBlank()) Text(nav.toast, color = Color(0xCCFFFFFF), style = MaterialTheme.typography.labelMedium)
@@ -752,7 +761,7 @@ private fun QuoteText(text: String) {
 // ---------------------------------------------------------------------------
 
 @Composable
-fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) {
+fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit, openUrl: ((String) -> Unit)? = null) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var detail by remember { mutableStateOf<ArticleDetail?>(null) }
@@ -793,7 +802,7 @@ fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) 
                 if (d.source.isNotBlank()) Text(d.source, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
                 if (d.url.isNotBlank()) {
-                    Button(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(d.url))) }) { Text("Open full article") }
+                    Button(onClick = { openUrl?.invoke(d.url) ?: ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(d.url))) }) { Text("Open full article") }
                 }
                 SectionHeader("Summary")
                 Text(d.summary, style = MaterialTheme.typography.bodyLarge)
@@ -829,7 +838,7 @@ fun ArticleScreen(id: String, repo: FeedRepo, prefs: Prefs, onBack: () -> Unit) 
                 }
                 if (d.url.isNotBlank()) {
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(onClick = { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(d.url))) }, Modifier.fillMaxWidth()) { Text("Open full article") }
+                    OutlinedButton(onClick = { openUrl?.invoke(d.url) ?: ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(d.url))) }, Modifier.fillMaxWidth()) { Text("Open full article") }
                 }
                 SectionHeader("Your taste")
                 Text("Shapes which quotes come up next.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -887,6 +896,14 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
     var unmetered by remember { mutableStateOf(prefs.unmeteredOnly) }
     var grace by remember { mutableIntStateOf(prefs.graceSeconds) }
     var position by remember { mutableStateOf(prefs.lockPosition) }
+    var sticky by remember { mutableStateOf(prefs.stickyNotification) }
+    var readerMin by remember { mutableIntStateOf(prefs.readerMinutes) }
+    var readerIcon by remember {
+        mutableStateOf(
+            ctx.packageManager.getComponentEnabledSetting(android.content.ComponentName(ctx, "com.tim.articlequotes.QuoteReaderLauncher")) !=
+                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+        )
+    }
     var tod by remember { mutableStateOf(prefs.timeOfDayThemes) }
     var weekly by remember { mutableStateOf(prefs.weeklyReviewOn) }
     var muted by remember { mutableStateOf(prefs.mutedAuthors.sorted()) }
@@ -935,7 +952,35 @@ fun SettingsScreen(prefs: Prefs, repo: FeedRepo, onTextScale: (Float) -> Unit) {
                 Text("Notification", style = MaterialTheme.typography.bodyLarge)
                 Text("Shows on the lock screen; tap to read the summary", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(notifs, { notifs = it; prefs.notificationsOn = it })
+            Switch(notifs, { on ->
+                notifs = on; prefs.notificationsOn = on
+                if (on) prefs.currentQuote?.let { q -> com.tim.articlequotes.Notifications.show(ctx, q) }
+                else androidx.core.app.NotificationManagerCompat.from(ctx).cancel(com.tim.articlequotes.Notifications.ID)
+            })
+        }
+        Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Keep the quote on the lock screen", style = MaterialTheme.typography.bodyLarge)
+                Text("The quote notification stays on the lock screen; if you swipe it away it comes back. Tap it to read over the lock screen, or tap Save or Next without unlocking.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(sticky, { sticky = it; prefs.stickyNotification = it; if (prefs.notificationsOn) prefs.currentQuote?.let { q -> com.tim.articlequotes.Notifications.show(ctx, q) } })
+        }
+        Text("Reader keeps the screen on for", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
+        Text("After this long without a touch, the screen can turn off again.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ChipRow(listOf(2, 5, 10, 30), readerMin, label = { "$it min" }) { readerMin = it; prefs.readerMinutes = it }
+        Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("\"Quote reader\" icon", style = MaterialTheme.typography.bodyLarge)
+                Text("A second icon in your app list. Add it to the lock screen with Good Lock > LockStar to open the reader with one tap.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Switch(readerIcon, { on ->
+                readerIcon = on
+                ctx.packageManager.setComponentEnabledSetting(
+                    android.content.ComponentName(ctx, "com.tim.articlequotes.QuoteReaderLauncher"),
+                    if (on) android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED else android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    android.content.pm.PackageManager.DONT_KILL_APP,
+                )
+            })
         }
         Text("Wallpaper", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
         ChipRow(listOf("off", "lock", "both"), wallpaper, label = { when (it) { "off" -> "Off"; "lock" -> "Lock screen"; else -> "Lock + home" } }) { wallpaper = it; prefs.wallpaperMode = it; reapplyWallpaper() }

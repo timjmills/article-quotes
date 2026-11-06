@@ -61,6 +61,16 @@ class Prefs(ctx: Context) {
         get() = sp.getString("lockPosition", "middle") ?: "middle"
         set(v) = sp.edit().putString("lockPosition", v).apply()
 
+    /** Minutes the lock-screen reader keeps the screen on without a touch. */
+    var readerMinutes: Int
+        get() = sp.getInt("readerMinutes", 5)
+        set(v) = sp.edit().putInt("readerMinutes", v.coerceIn(1, 30)).apply()
+
+    /** Keep the quote notification on the lock screen (it is the way into the reader). */
+    var stickyNotification: Boolean
+        get() = sp.getBoolean("stickyNotification", true)
+        set(v) = sp.edit().putBoolean("stickyNotification", v).apply()
+
     var showContext: Boolean
         get() = sp.getBoolean("showContext", true)
         set(v) = sp.edit().putBoolean("showContext", v).apply()

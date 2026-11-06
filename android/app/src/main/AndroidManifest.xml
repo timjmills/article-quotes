@@ -32,6 +32,31 @@
             </intent-filter>
         </activity>
 
+        <!-- Quote reader: shows over the lock screen without unlocking. -->
+        <activity
+            android:name=".ui.ReaderActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:taskAffinity="com.tim.articlequotes.reader"
+            android:theme="@style/Theme.ArticleQuotes" />
+
+        <!-- Second app-list icon so Good Lock / LockStar can put the reader on the lock screen. -->
+        <activity-alias
+            android:name=".QuoteReaderLauncher"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/reader_label"
+            android:targetActivity=".ui.ReaderActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <receiver
             android:name=".widget.QuoteWidget"
             android:exported="true"

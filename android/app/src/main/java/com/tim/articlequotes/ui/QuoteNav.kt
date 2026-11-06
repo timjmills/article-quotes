@@ -55,6 +55,7 @@ class QuoteNav(
         wallpaperJob?.cancel()
         wallpaperJob = scope.launch {
             delay(900)
+            if (prefs.notificationsOn) com.tim.articlequotes.Notifications.show(ctx, q)
             withContext(Dispatchers.IO) { Rotator.applyWallpaper(ctx, prefs, q) }
         }
     }

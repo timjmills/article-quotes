@@ -236,11 +236,19 @@ class QuoteActionReceiver : BroadcastReceiver() {
                     try { Rotator.rotate(app, notify = true, respectQuietHours = false) } finally { pending.finish() }
                 }
             }
-            ACTION_SAVE -> {
+            ACTION_DISMISSED -> {
                 val prefs = Prefs(app)
-                val q = prefs.currentQuote ?: return
-                if (!prefs.isFavorite(q.id)) prefs.toggleFavorite(q)
-                Toast.makeText(app, "Saved to your favourites", Toast.LENGTH_SHORT).show()
+                if (prefs.stickyNotification && prefs.notificationsOn) prefs.currentQuote?.let { Notifications.show(app, it) }
+            }
+            ACTION_SAVE -> {
+                // Works from the lock screen without unlocking. Tapping again un-saves.
+                val prefs = Prefs(app)
+                val id = intent.getStringExtra("quoteId")
+                val q = listOfNotNull(prefs.currentQuote).plus(prefs.history).plus(prefs.favorites)
+                    .firstOrNull { id == null || it.id == id } ?: return
+                val saved = prefs.toggleFavorite(q)
+                Toast.makeText(app, if (saved) "Saved to your quotes" else "Removed from saved", Toast.LENGTH_SHORT).show()
+                if (prefs.notificationsOn) Notifications.show(app, q)
             }
         }
     }
@@ -248,5 +256,6 @@ class QuoteActionReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_NEXT = "com.tim.articlequotes.NEXT"
         const val ACTION_SAVE = "com.tim.articlequotes.SAVE"
+        const val ACTION_DISMISSED = "com.tim.articlequotes.DISMISSED"
     }
 }

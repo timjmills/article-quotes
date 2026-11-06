@@ -13,6 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.tim.articlequotes.data.Quote
 import com.tim.articlequotes.ui.MainActivity
+import com.tim.articlequotes.ui.ReaderActivity
 import com.tim.articlequotes.work.QuoteActionReceiver
 
 object Notifications {
@@ -90,11 +91,9 @@ object Notifications {
 
     fun show(ctx: Context, q: Quote) {
         if (!canPost(ctx)) return
-        val open = Intent(ctx, MainActivity::class.java).apply {
-            putExtra(MainActivity.EXTRA_ARTICLE, q.articleId)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val openPi = PendingIntent.getActivity(ctx, 1, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val prefs = com.tim.articlequotes.data.Prefs(ctx)
+        // Tapping the quote opens the reader, which shows over the lock screen without unlocking.
+        val openPi = PendingIntent.getActivity(ctx, 1, ReaderActivity.intent(ctx), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val nextPi = PendingIntent.getBroadcast(
             ctx, 2, Intent(ctx, QuoteActionReceiver::class.java).setAction(QuoteActionReceiver.ACTION_NEXT),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -118,10 +117,21 @@ object Notifications {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setOnlyAlertOnce(true)
-            .setAutoCancel(true)
-            .addAction(0, "Read summary", openPi)
-            .addAction(0, "Save", savePi)
-            .addAction(0, "Next", nextPi)
+            .setSilent(true)
+            .setAutoCancel(false)
+            .setOngoing(prefs.stickyNotification)
+            .setDeleteIntent(
+                PendingIntent.getBroadcast(
+                    ctx, 4, Intent(ctx, QuoteActionReceiver::class.java).setAction(QuoteActionReceiver.ACTION_DISMISSED),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
+            )
+            .addAction(NotificationCompat.Action.Builder(0, "Read", openPi).build())
+            .addAction(
+                NotificationCompat.Action.Builder(0, if (prefs.isFavorite(q.id)) "\u2665 Saved" else "\u2661 Save", savePi)
+                    .setAuthenticationRequired(false).build(),
+            )
+            .addAction(NotificationCompat.Action.Builder(0, "Next", nextPi).setAuthenticationRequired(false).build())
             .build()
         try {
             NotificationManagerCompat.from(ctx).notify(ID, n)

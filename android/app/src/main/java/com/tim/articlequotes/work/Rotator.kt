@@ -88,7 +88,8 @@ object Rotator {
         prefs.currentSince = System.currentTimeMillis()
         prefs.markSeen(q.id)
         prefs.pushHistory(q)
-        if (notify) Notifications.show(app, q)
+        // The notification is silent, so keep it showing the current quote even for in-app changes.
+        if (notify || prefs.notificationsOn) Notifications.show(app, q)
         applyWallpaper(app, prefs, q)
         QuoteWidget.refresh(app)
     }
