@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-11-06T11:02:48+00:00",
+  "generated": "2026-11-06T11:28:09+00:00",
   "articleCount": 7886,
   "newest": "2026-11-06",
   "quoteCount": 48266,
@@ -1490,5 +1490,17 @@
       "articles": 111,
       "quotes": 834
     }
-  ]
+  ],
+  "extras": {
+    "wisdom": {
+      "path": "wisdom.json",
+      "sha": "c1a3361f51e6619e",
+      "count": 241
+    },
+    "proverbs": {
+      "path": "proverbs_plan.json",
+      "sha": "868eab0e7b71d5e1",
+      "count": 683
+    }
+  }
 }

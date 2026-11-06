@@ -465,6 +465,7 @@ def build_feed(articles: list[dict], feed_dir: Path, cfg: dict, overrides: dict 
     cats = {}
     for a in feed_articles:
         cats[a["category"]] = cats.get(a["category"], 0) + 1
+    extras = {k: v for k, v in (("wisdom", build_wisdom(feed_dir)), ("proverbs", build_proverbs(feed_dir))) if v}
     # Keep the previous timestamp when nothing changed, so a quiet day makes no git commit.
     generated = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     old_manifest_path = feed_dir / "manifest.json"
@@ -472,7 +473,8 @@ def build_feed(articles: list[dict], feed_dir: Path, cfg: dict, overrides: dict 
         try:
             old = json.loads(old_manifest_path.read_text(encoding="utf-8"))
             old_shards = [(s["name"], s["sha"]) for s in old.get("shards", [])]
-            if old_shards == [(s["name"], s["sha"]) for s in shard_list] and old.get("articleCount") == len(feed_articles):
+            if (old_shards == [(s["name"], s["sha"]) for s in shard_list] and old.get("articleCount") == len(feed_articles)
+                    and old.get("extras") == extras):
                 generated = old.get("generated", generated)
         except (json.JSONDecodeError, KeyError, TypeError):
             pass
@@ -484,9 +486,110 @@ def build_feed(articles: list[dict], feed_dir: Path, cfg: dict, overrides: dict 
         "quoteCount": sum(len(a["quotes"]) for a in feed_articles),
         "categories": cats,
         "shards": shard_list,
+        "extras": extras,
     }
     write_json(feed_dir / "manifest.json", manifest, compact=False)
     return manifest
+
+
+# ----------------------------------------------------------------------------
+# Wisdom quotes and the Proverbs reading plan (extra feed files)
+# ----------------------------------------------------------------------------
+
+WISDOM_DIR = HERE / "wisdom"
+
+
+def build_wisdom(feed_dir: Path) -> dict | None:
+    """Merge builder/wisdom/*.json (curated, source-checked quotes) into docs/feed/wisdom.json."""
+    items = []
+    for f in sorted(WISDOM_DIR.glob("*.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            print(f"  ! skipping {f.name}: {exc}", file=sys.stderr)
+            continue
+        for q in data:
+            text = clean_ws(str(q.get("text", "")))
+            author = clean_ws(str(q.get("author", "")))
+            if not text or not author or not q.get("verifiedBy"):
+                continue  # unverified quotes never ship
+            qid = "w-" + hashlib.sha1(f"{author}|{text}".encode("utf-8")).hexdigest()[:12]
+            items.append({"id": qid, "g": q.get("group", f.stem.title()), "a": author, "t": text,
+                          "w": clean_ws(str(q.get("work", ""))), "x": clean_ws(str(q.get("significance", "")))})
+    if not items:
+        return None
+    seen, uniq = set(), []
+    for it in items:
+        if it["id"] not in seen:
+            seen.add(it["id"]); uniq.append(it)
+    sha = write_json(feed_dir / "wisdom.json", uniq)
+    return {"path": "wisdom.json", "sha": sha, "count": len(uniq)}
+
+
+# Verses per chapter of Proverbs (ESV versification).
+PROVERBS_VERSES = [33, 22, 35, 27, 23, 35, 27, 36, 18, 32, 31, 28, 25, 35, 33, 33, 28, 24, 29, 30,
+                   31, 29, 35, 34, 28, 28, 27, 28, 27, 33, 31]
+# Paragraph starts in the discourse sections (chapters 1-9, 22:17-24:34, 30-31). Each paragraph
+# is cut into readings of at most 3 verses. Everywhere else, each saying stands alone.
+PROVERBS_PARAGRAPHS = {
+    1: [1, 4, 7, 8, 10, 15, 20, 24, 29, 32],
+    2: [1, 6, 9, 12, 16, 20],
+    3: [1, 3, 5, 7, 9, 11, 13, 19, 21, 27, 31],
+    4: [1, 5, 10, 14, 20, 23],
+    5: [1, 7, 15, 18, 21],
+    6: [1, 6, 9, 12, 16, 20, 23, 27, 30, 32],
+    7: [1, 4, 6, 10, 21, 24],
+    8: [1, 6, 12, 17, 22, 27, 32],
+    9: [1, 7, 10, 13],
+    22: [17, 22, 24, 26, 28, 29],
+    23: [1, 4, 6, 9, 10, 12, 13, 15, 17, 19, 22, 26, 29],
+    24: [1, 3, 5, 7, 8, 10, 11, 13, 15, 17, 19, 21, 23, 27, 28, 30],
+    30: [1, 5, 7, 10, 11, 15, 18, 21, 24, 29, 32],
+    31: [1, 4, 8, 10, 13, 16, 19, 22, 25, 28, 30],
+}
+
+
+def _is_discourse(ch: int, v: int) -> bool:
+    return ch <= 9 or ch in (30, 31) or (ch == 22 and v >= 17) or ch in (23, 24)
+
+
+def proverbs_plan() -> list[dict]:
+    chunks = []
+
+    def add(ch, a, b):
+        dash = "–"
+        ref = f"Proverbs {ch}:{a}" + (f"{dash}{b}" if b > a else "")
+        q = f"Prov {ch}:{a}" + (f"-{b}" if b > a else "")
+        chunks.append({"id": f"prov-{ch}-{a}-{b}", "ref": ref, "q": q, "ch": ch, "v1": a, "v2": b})
+
+    for ch, n in enumerate(PROVERBS_VERSES, start=1):
+        v = 1
+        starts = PROVERBS_PARAGRAPHS.get(ch, [])
+        while v <= n:
+            if not _is_discourse(ch, v):
+                add(ch, v, v); v += 1; continue
+            nxt = [s for s in starts if s > v]
+            end = min((nxt[0] - 1) if nxt else n, n)
+            # stop the paragraph where the single-saying section begins (22:16 -> 22:17)
+            if ch == 22 and v < 17:
+                end = min(end, 16)
+            length = end - v + 1
+            # cut into readings of 3, avoiding a lone verse at the end (4 -> 2+2)
+            sizes = []
+            while length > 0:
+                take = 2 if length in (2, 4) else min(3, length)
+                sizes.append(take); length -= take
+            for size in sizes:
+                add(ch, v, v + size - 1); v += size
+    return chunks
+
+
+def build_proverbs(feed_dir: Path) -> dict:
+    plan = proverbs_plan()
+    covered = sum(c["v2"] - c["v1"] + 1 for c in plan)
+    assert covered == sum(PROVERBS_VERSES) == 915, covered
+    sha = write_json(feed_dir / "proverbs_plan.json", plan)
+    return {"path": "proverbs_plan.json", "sha": sha, "count": len(plan)}
 
 
 # ----------------------------------------------------------------------------
