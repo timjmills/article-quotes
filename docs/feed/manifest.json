@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "generated": "2026-11-07T11:09:04+00:00",
-  "articleCount": 7948,
+  "generated": "2026-11-07T19:03:00+00:00",
+  "articleCount": 7953,
   "newest": "2026-11-07",
-  "quoteCount": 48693,
+  "quoteCount": 48731,
   "categories": {
-    "Leadership": 2587,
-    "Education - Learning & Curriculum": 2028,
+    "Leadership": 2588,
+    "Education - Ed-Tech": 591,
+    "Education - Learning & Curriculum": 2031,
     "Education - Practice & Culture": 2234,
-    "Education - Ed-Tech": 590,
     "Family": 375,
     "Classical Education": 134
   },
@@ -1486,9 +1486,9 @@
     {
       "name": "2026-11",
       "path": "quotes/2026-11.json",
-      "sha": "d484eb27cabcfb12",
-      "articles": 141,
-      "quotes": 1061
+      "sha": "a1ed78f80f27671e",
+      "articles": 146,
+      "quotes": 1099
     }
   ],
   "extras": {
